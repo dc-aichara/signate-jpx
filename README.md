@@ -1,44 +1,16 @@
-# Competition Template
+# Signate JPX
 
-A competition template repository which makes it easy to kick start a new repository for competition. 
 
-```bash
-├── competition_code
-│   ├── train_model.py
-│   ├── model_serving.py
-│   ├── make_dataset.py
-│   ├── create_features.py
-│   └── __init__.py
-├── data
-│   ├── validation
-│   ├── submissions
-│   ├── raw
-│   ├── processed
-│   ├── mappings
-│   └── interim
-├── logs_metadata
-├── models
-├── notebooks
-├── .gitignore
-├── config.yml
-├── docker-compose.yml
-├── Dockerfile
-├── environment.yml
-├── LICENSE
-├── README.md
-
-```
-
-# Competition Setup Guide
+# Setup Guide
 
 ## Development Env
- 1. Create conda environment `competition` with `environment.yml` file.
+ 1. Create conda environment `signate_jpx` with `environment.yml` file.
     ```bash
     conda env create -f environment.yml
     ```
- 2. Activate `competition` conda env
+ 2. Activate `signate_jpx` conda env
     ```bash
-    conda activate competition
+    conda activate signate_jpx
     ```
 
 To update environment. 
@@ -68,7 +40,7 @@ To update environment.
  4. To utilize training pipeline run the following command. 
     
     ```bash
-    docker exec -it competition_pipeline /bin/bash 
+    docker exec -it signate_jpx_pipeline /bin/bash 
     ```
  5. To begin an end to end training ensure all data is in data/raw and run the following. - maybe need to allow for loading data from old files in future.
     
