@@ -1,4 +1,4 @@
-name: competition
+name: signate_jpx
 channels:
 - defaults
 - conda-forge
