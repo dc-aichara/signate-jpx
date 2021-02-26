@@ -5,6 +5,7 @@ data/interim/*.csv
 data/submissions/*.csv
 models/*.txt
 models/*.csv
+*.gz
 .DS_Store
 __pycache__/
 *.png
