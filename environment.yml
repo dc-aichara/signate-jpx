@@ -16,4 +16,5 @@ dependencies:
     - seaborn==0.11.1
     - ipywidgets==7.5.1
     - pyyaml
-    - dvc==1.11.16
+    - dvc==2.0.1
+    - PriceIndices==1.2.1
