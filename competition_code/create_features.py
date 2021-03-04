@@ -1,5 +1,5 @@
 import argparse
-from utils import load_config
+from utils import load_config, calculate_price_indices
 
 if __name__ == '__main__':
     CLI = argparse.ArgumentParser()
