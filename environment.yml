@@ -18,3 +18,4 @@ dependencies:
     - pyyaml
     - dvc==2.0.1
     - PriceIndices==1.2.1
+    - black==20.8b1
