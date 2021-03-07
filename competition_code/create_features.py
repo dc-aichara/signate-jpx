@@ -1,5 +1,5 @@
 import argparse
-from utils import load_config, calculate_price_indices
+from utils import load_config, calculate_price_indices, date_feats
 from dateutil import parser
 import pandas as pd
 import sklearn
@@ -65,7 +65,9 @@ def auto_dates(train, dates):
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
-    CLI.add_argument("--config_id", type=str, help="Configuration ID for training")
+    CLI.add_argument(
+        "--config_id", type=str, help="Configuration ID for training"
+    )
 
     ARGS = CLI.parse_args()
 
@@ -77,8 +79,8 @@ if __name__ == "__main__":
     # Probably will move this - Anything we want to keep
     linear_model_data_config = {
         "base_date": "date",
-        #'Effective Date': 'date',
-        #'Local Code': 'categorical',
+        # 'Effective Date': 'date',
+        # 'Local Code': 'categorical',
         "Name (English)": "drop",
         "Section/Products": "categorical",
         "33 Sector(Code)": "categorical",
@@ -88,7 +90,7 @@ if __name__ == "__main__":
         "Size Code (New Index Series)": "categorical",
         "Size (New Index Series)": "drop",
         "IssuedShareEquityQuote AccountingStandard": "categorical",
-        #'IssuedShareEquityQuote ModifyDate': 'date',
+        # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
         ####### stock_price
         "EndOfDayQuote Open": "numeric",

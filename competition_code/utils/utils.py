@@ -56,6 +56,7 @@ def reduce_mem_usage(df, verbose=True):
         )
     return df
 
+
 def load_config(config_id: str) -> dict:
     with open("config.yml", "r") as f:
         doc = yaml.load(f, yaml.Loader)
@@ -152,3 +153,20 @@ def date_feats(
     data[dow_col] = data[date_col].dt.dayofweek
 
     return data
+
+
+def lgb_spearmanr(preds, dtrain_data):
+    """
+    Spearman's rank correlation coefficient metrics for LightGBM
+    """
+    labels = dtrain_data.get_label()
+    corr = spearmanr(labels, preds)[0]
+    return "lgb_corr", corr, True
+
+
+def lgb_r2_score(preds, dtrain_data):
+    """
+    R^2 metrics for LightGBM
+    """
+    labels = dtrain_data.get_label()
+    return 'r2', r2_score(labels, preds), True

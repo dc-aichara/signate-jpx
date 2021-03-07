@@ -28,7 +28,9 @@ def format_dates(df: pd.DataFrame, columns: list):
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
-    CLI.add_argument("--config_id", type=str, help="Configuration ID for training")
+    CLI.add_argument(
+        "--config_id", type=str, help="Configuration ID for training"
+    )
 
     ARGS = CLI.parse_args()
 
@@ -67,7 +69,8 @@ if __name__ == "__main__":
     # stock_list = format_dates(stock_list,['IssuedShareEquityQuote ModifyDate'])
 
     stock_labels = format_dates(
-        stock_labels, ["base_date", "label_date_5", "label_date_10", "label_date_20"]
+        stock_labels,
+        ["base_date", "label_date_5", "label_date_10", "label_date_20"],
     )
 
     print(stock_labels.shape)

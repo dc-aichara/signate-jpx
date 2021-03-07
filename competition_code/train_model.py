@@ -15,7 +15,9 @@ def final_metric(spearman_low, spearman_high):
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
-    CLI.add_argument("--config_id", type=str, help="Configuration ID for training")
+    CLI.add_argument(
+        "--config_id", type=str, help="Configuration ID for training"
+    )
 
     ARGS = CLI.parse_args()
 
@@ -54,13 +56,16 @@ if __name__ == "__main__":
     high_df = pd.concat([y_test_high, pd.DataFrame(high_preds)], axis=1)
     low_df = pd.concat([y_test_low, pd.DataFrame(low_preds)], axis=1)
 
-    # Evalute Ridge
+    # Evaluate Ridge
     spearman_high = spearmanr(y_test_high, high_preds)[0]
     spearman_low = spearmanr(y_test_low, low_preds)[0]
 
     final_metric = final_metric(spearman_low, spearman_high)
 
-    print("Final Leaderboard Score- Public - Test Set is same as public leaderboard")
+    print(
+        "Final Leaderboard Score- Public - Test Set is same as public "
+        "leaderboard."
+    )
     print(final_metric)
 
     # Tree Based Model - For Later
