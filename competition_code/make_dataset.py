@@ -6,31 +6,6 @@ from utils import reduce_mem_usage
 from datetime import datetime
 
 
-stock_fin_dtypes = {
-    "base_date": "date",
-    "Local Code": "categorical",
-    "Result_FinancialStatement AccountingStandard": "categorical",
-    "Result_FinancialStatement FiscalPeriodEnd": "date",
-    "Result_FinancialStatement ReportType": "categorical",
-    "Result_FinancialStatement FiscalYear": "date",
-    "Result_FinancialStatement ModifyDate": "date",
-    "Result_FinancialStatement CompanyType": "categorical",
-    "Result_FinancialStatement ChangeOfFiscalYearEnd": "categorical",
-    "Forecast_FinancialStatement AccountingStandard": "categorical",
-    "Forecast_FinancialStatement FiscalPeriodEnd": "date",
-    "Forecast_FinancialStatement ReportType": "categorical",
-    "Forecast_FinancialStatement FiscalYear": "date",
-    "Forecast_FinancialStatement ModifyDate": "date",
-    "Forecast_FinancialStatement CompanyType": "categorical",
-    "Forecast_FinancialStatement ChangeOfFiscalYearEnd": "categorical",
-    "Forecast_Dividend FiscalPeriodEnd": "date",
-    "Forecast_Dividend ReportType": "categorical",
-    "Forecast_Dividend FiscalYear": "date",
-    "Forecast_Dividend ModifyDate": "date",
-    "Forecast_Dividend RecordDate": "date",
-}
-
-
 def load_data(data_dir: str = "data/raw/"):
     print(f"Loading data from {data_dir}")
     stock_labels = pd.read_csv(f"{data_dir}stock_labels.csv.gz")
