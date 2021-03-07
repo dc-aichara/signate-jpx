@@ -91,19 +91,12 @@ if __name__ == "__main__":
     #    train, stock_fin_price, on=["base_date", "Local Code"], how="left"
     # )
 
-    test = pd.merge(test, stock_list, on=["Local Code"], how="left")
-    print(train.shape)
-    # test = pd.merge(
-    # test, stock_fin_price, on=["base_date", "Local Code"], how="left")
-
     train = train[train["prediction_target"] == True]
-    test = test[test["prediction_target"] == True]
 
-    print(train.shape)
     # train = pd.merge(
     #    train, stock_fin, on=["base_date", "Local Code"], how="left"
     # )
-    # print(train.shape)
+
     train = pd.merge(
         train,
         stock_price,
@@ -112,13 +105,22 @@ if __name__ == "__main__":
         how="left",
     )
 
-    test = pd.merge(
-        test,
-        stock_price,
-        left_on=["base_date", "Local Code"],
-        right_on=["EndOfDayQuote Date", "Local Code"],
-        how="left",
-    )
+    # Handle Test
+
+    if config.get("test_model") == "public":
+        test = pd.merge(test, stock_list, on=["Local Code"], how="left")
+        test = test[test["prediction_target"] == True]
+
+        # test = pd.merge(test, stock_fin_price, on=["base_date", "Local Code"], how="left")
+        test = pd.merge(
+            test,
+            stock_price,
+            left_on=["base_date", "Local Code"],
+            right_on=["EndOfDayQuote Date", "Local Code"],
+            how="left",
+        )
+
+        # test = pd.merge(test, stock_fin, on=["base_date", "Local Code"], how="left")
 
     time3 = datetime.now()
 
@@ -129,4 +131,6 @@ if __name__ == "__main__":
 
     ## Begin combining data and stuff.
     train.to_csv("data/interim/train.csv")
-    test.to_csv("data/interim/test.csv")
+
+    if config.get("test_model") == "public":
+        test.to_csv("data/interim/test.csv")

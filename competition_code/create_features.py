@@ -2,7 +2,8 @@ import argparse
 from utils import load_config, calculate_price_indices
 from dateutil import parser
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder
+import sklearn
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -25,60 +26,40 @@ def get_data_rules(config: dict):
     return numerics, dates, categoricals, drops
 
 
-def auto_categorical(train, test, categoricals):
+def auto_categorical(df, encoder, categoricals):
     for category in categoricals:
-        train[category] = train[category].fillna("no_category").astype(str)
-        test[category] = test[category].fillna("no_category").astype(str)
+        df[category] = df[category].fillna("no_category").astype(str)
 
-    ohe = OneHotEncoder(handle_unknown="ignore", sparse=False)
+    transformed_df = pd.DataFrame(encoder.transform(df[categoricals]))
 
-    ohe.fit(train[categoricals])
+    # if ohe
+    if isinstance(encoder, sklearn.preprocessing._encoders.OneHotEncoder):
+        print("OHE")
+        transformed_df.columns = encoder.get_feature_names()
 
-    transformed_train = pd.DataFrame(ohe.transform(train[categoricals]))
-    print(transformed_train.shape)
-    print(len(ohe.get_feature_names()))
-    transformed_train.columns = ohe.get_feature_names()
+    if isinstance(encoder, sklearn.preprocessing._encoders.OrdinalEncoder):
+        print("Ordinal Encoder")
+        transformed_df.columns = categoricals
 
-    transformed_test = pd.DataFrame(ohe.transform(test[categoricals]))
-    transformed_test.columns = ohe.get_feature_names()
-
-    ## Add Ordinal Encoder for LGBM later
-
-    return transformed_train, transformed_test
+    return transformed_df
 
 
-def auto_numeric(train, test, numerics):
-    scaler = MinMaxScaler()
+def auto_numeric(df, scaler, numerics):
+    numerics_df = pd.DataFrame(scaler.transform(df[numerics]))
+    numerics_df.columns = numerics
 
-    scaler.fit(train[numerics])
-    train_numeric_df = pd.DataFrame(scaler.transform(train[numerics]))
-    train_numeric_df.columns = numerics
-
-    test_numeric_df = pd.DataFrame(scaler.transform(test[numerics]))
-    test_numeric_df.columns = numerics
-
-    return train_numeric_df, test_numeric_df
+    return numerics_df
 
 
-def auto_dates(train, test, dates):
-    train_dates_df = pd.DataFrame()
-    test_dates_df = pd.DataFrame()
+def auto_dates(train, dates):
+    # DF with all the dates
+    dates_df = pd.DataFrame()
     for date in dates:
-        # try:
-        #    df[date] = df[date].apply(lambda x: parser.parse(str(x)))
-        # except:
-        # df[date] = pd.to_datetime(df[date]).strftime("%Y-%m-%d")
-        # df[date].apply(lambda x: pd.to_datetime(x).strftime("%Y-%m-%d") if pd.notnull(x) else '')
+        dates_df[f"{date}_year"] = pd.to_datetime(train[date]).dt.year
+        dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
+        dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
 
-        train_dates_df[f"{date}_year"] = pd.to_datetime(train[date]).dt.year
-        train_dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
-        train_dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
-
-        test_dates_df[f"{date}_year"] = pd.to_datetime(test[date]).dt.year
-        test_dates_df[f"{date}_month"] = pd.to_datetime(test[date]).dt.month
-        test_dates_df[f"{date}_day"] = pd.to_datetime(test[date]).dt.day
-
-    return train_dates_df, test_dates_df
+    return dates_df
 
 
 if __name__ == "__main__":
@@ -94,7 +75,7 @@ if __name__ == "__main__":
     config = load_config(config_id)
 
     # Probably will move this - Anything we want to keep
-    data_processing_config = {
+    linear_model_data_config = {
         "base_date": "date",
         #'Effective Date': 'date',
         #'Local Code': 'categorical',
@@ -126,8 +107,39 @@ if __name__ == "__main__":
         "EndOfDayQuote VWAP": "numeric",
     }
 
-    numerics, dates, categoricals, drops = get_data_rules(data_processing_config)
+    tree_model_data_config = {
+        "base_date": "date",
+        #'Effective Date': 'date',
+        #'Local Code': 'categorical',
+        "Name (English)": "drop",
+        "Section/Products": "categorical",
+        "33 Sector(Code)": "categorical",
+        "33 Sector(name)": "drop",
+        "17 Sector(Code)": "categorical",
+        "17 Sector(name)": "drop",
+        "Size Code (New Index Series)": "categorical",
+        "Size (New Index Series)": "drop",
+        "IssuedShareEquityQuote AccountingStandard": "categorical",
+        #'IssuedShareEquityQuote ModifyDate': 'date',
+        "IssuedShareEquityQuote IssuedShare": "numeric",
+        ####### stock_price
+        "EndOfDayQuote Open": "numeric",
+        "EndOfDayQuote High": "numeric",
+        "EndOfDayQuote Low": "numeric",
+        "EndOfDayQuote Close": "numeric",
+        "EndOfDayQuote ExchangeOfficialClose": "numeric",
+        "EndOfDayQuote Volume": "numeric",
+        "EndOfDayQuote CumulativeAdjustmentFactor": "numeric",
+        "EndOfDayQuote PreviousClose": "numeric",
+        "EndOfDayQuote PreviousCloseDate": "drop",
+        "EndOfDayQuote PreviousExchangeOfficialClose": "numeric",
+        "EndOfDayQuote PreviousExchangeOfficialCloseDate": "drop",
+        "EndOfDayQuote ChangeFromPreviousClose": "numeric",
+        "EndOfDayQuote PercentChangeFromPreviousClose": "numeric",
+        "EndOfDayQuote VWAP": "numeric",
+    }
 
+    ## Generic Steps
     train = pd.read_csv("data/interim/train.csv")
     test = pd.read_csv("data/interim/test.csv")
 
@@ -138,21 +150,84 @@ if __name__ == "__main__":
     y_test_high = test["label_high_20"]
     y_test_low = test["label_low_20"]
 
-    print("Auto Train")
-    train_dates_df, test_dates_df = auto_dates(train, test, dates)
-    train_categoricals_df, test_categoricals_df = auto_categorical(
-        train, test, categoricals
-    )
-    train_numerics_df, test_numerics_df = auto_numeric(train, test, numerics)
-
-    train = pd.concat(
-        [train_dates_df, train_categoricals_df, train_numerics_df], axis=1
-    )
-    test = pd.concat([test_dates_df, test_categoricals_df, test_numerics_df], axis=1)
-
-    train.to_csv("data/processed/train.csv", index=False)
-    test.to_csv("data/processed/test.csv", index=False)
     y_train_high.to_csv("data/processed/y_train_high.csv", index=False)
     y_train_low.to_csv("data/processed/y_train_low.csv", index=False)
     y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
     y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
+
+    # Get preproc rules
+    numerics_linear, dates_linear, categoricals_linear, drops_linear = get_data_rules(
+        linear_model_data_config
+    )
+    numerics_tree, dates_tree, categoricals_tree, drops_tree = get_data_rules(
+        tree_model_data_config
+    )
+
+    # Linear
+    print("Begin Linear Processing")
+
+    # Dates
+    train_dates_df_linear = auto_dates(train, dates_linear)
+
+    # Numerics
+    scaler = MinMaxScaler()
+    scaler.fit(train[numerics_linear])
+
+    train_numerics_df_linear = auto_numeric(train, scaler, numerics_linear)
+
+    # Categoricals
+    for category in categoricals_linear:
+        train[category] = train[category].fillna("no_category").astype(str)
+
+    ohe = OneHotEncoder(handle_unknown="ignore", sparse=False)
+    ohe.fit(train[categoricals_linear])
+    train_categoricals_df_linear = auto_categorical(train, ohe, categoricals_linear)
+
+    train_linear = pd.concat(
+        [train_dates_df_linear, train_categoricals_df_linear, train_numerics_df_linear],
+        axis=1,
+    )
+
+    train_linear.to_csv("data/processed/train_linear.csv", index=False)
+
+    # Trees
+    print("Begin Tree Processing")
+    train_dates_df_trees = auto_dates(train, dates_tree)
+    ordenc = OrdinalEncoder()
+    ordenc.fit(train[categoricals_tree])
+    train_categoricals_df_trees = auto_categorical(train, ordenc, categoricals_tree)
+    train_numerics_df_trees = auto_numeric(train, scaler, numerics_tree)
+
+    train_trees = pd.concat(
+        [train_dates_df_trees, train_categoricals_df_trees, train_numerics_df_trees],
+        axis=1,
+    )
+
+    train_trees.to_csv("data/processed/train_trees.csv", index=False)
+
+    if config.get("test_model") == "public":
+        # Only for our own evaluation purposes
+
+        # Linear
+        test_dates_df_linear = auto_dates(test, dates_linear)
+        test_numerics_df_linear = auto_numeric(test, scaler, numerics_linear)
+        test_categoricals_df_linear = auto_categorical(test, ohe, categoricals_linear)
+        test_linear = pd.concat(
+            [
+                test_dates_df_linear,
+                test_categoricals_df_linear,
+                test_numerics_df_linear,
+            ],
+            axis=1,
+        )
+        test_linear.to_csv("data/processed/test_linear.csv", index=False)
+
+        # Trees
+        test_dates_df_trees = auto_dates(test, dates_tree)
+        test_numerics_df_trees = auto_numeric(test, scaler, numerics_tree)
+        test_categoricals_df_trees = auto_categorical(test, ordenc, categoricals_tree)
+        test_trees = pd.concat(
+            [test_dates_df_trees, test_categoricals_df_trees, test_numerics_df_trees],
+            axis=1,
+        )
+        test_trees.to_csv("data/processed/test_tress.csv", index=False)

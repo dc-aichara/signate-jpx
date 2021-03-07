@@ -24,11 +24,9 @@ if __name__ == "__main__":
     print("Train Models!!!")
     config = load_config(config_id)
 
-    train = pd.read_csv("data/processed/train.csv").fillna(0)
-    test = pd.read_csv("data/processed/test.csv").fillna(0)
+    train_linear = pd.read_csv("data/processed/train_linear.csv").fillna(0)
+    test_linear = pd.read_csv("data/processed/test_linear.csv").fillna(0)
 
-    print(train.isnull().sum())
-    print(test.isnull().sum())
     y_train_high = pd.read_csv("data/processed/y_train_high.csv")
     y_train_low = pd.read_csv("data/processed/y_train_low.csv")
     y_test_high = pd.read_csv("data/processed/y_test_high.csv")
@@ -47,11 +45,11 @@ if __name__ == "__main__":
     Ridge_high = linear_model.Ridge(alpha=0.001)
     Ridge_low = linear_model.Ridge(alpha=0.001)
 
-    Ridge_high.fit(train, y_train_high)
-    Ridge_low.fit(train, y_train_low)
+    Ridge_high.fit(train_linear, y_train_high)
+    Ridge_low.fit(train_linear, y_train_low)
 
-    high_preds = Ridge_high.predict(test)
-    low_preds = Ridge_low.predict(test)
+    high_preds = Ridge_high.predict(test_linear)
+    low_preds = Ridge_low.predict(test_linear)
 
     high_df = pd.concat([y_test_high, pd.DataFrame(high_preds)], axis=1)
     low_df = pd.concat([y_test_low, pd.DataFrame(low_preds)], axis=1)
