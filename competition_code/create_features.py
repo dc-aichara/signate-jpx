@@ -55,9 +55,9 @@ def auto_dates(train, dates):
     # DF with all the dates
     dates_df = pd.DataFrame()
     for date in dates:
-        dates_df[f"{date}_year"] = pd.to_datetime(train[date]).dt.year
         dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
         dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
+        dates_df["f{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
 
     return dates_df
 
@@ -158,9 +158,12 @@ if __name__ == "__main__":
     y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
 
     # Get preproc rules
-    numerics_linear, dates_linear, categoricals_linear, drops_linear = get_data_rules(
-        linear_model_data_config
-    )
+    (
+        numerics_linear,
+        dates_linear,
+        categoricals_linear,
+        drops_linear,
+    ) = get_data_rules(linear_model_data_config)
     numerics_tree, dates_tree, categoricals_tree, drops_tree = get_data_rules(
         tree_model_data_config
     )
@@ -183,10 +186,16 @@ if __name__ == "__main__":
 
     ohe = OneHotEncoder(handle_unknown="ignore", sparse=False)
     ohe.fit(train[categoricals_linear])
-    train_categoricals_df_linear = auto_categorical(train, ohe, categoricals_linear)
+    train_categoricals_df_linear = auto_categorical(
+        train, ohe, categoricals_linear
+    )
 
     train_linear = pd.concat(
-        [train_dates_df_linear, train_categoricals_df_linear, train_numerics_df_linear],
+        [
+            train_dates_df_linear,
+            train_categoricals_df_linear,
+            train_numerics_df_linear,
+        ],
         axis=1,
     )
 
@@ -197,11 +206,17 @@ if __name__ == "__main__":
     train_dates_df_trees = auto_dates(train, dates_tree)
     ordenc = OrdinalEncoder()
     ordenc.fit(train[categoricals_tree])
-    train_categoricals_df_trees = auto_categorical(train, ordenc, categoricals_tree)
+    train_categoricals_df_trees = auto_categorical(
+        train, ordenc, categoricals_tree
+    )
     train_numerics_df_trees = auto_numeric(train, scaler, numerics_tree)
 
     train_trees = pd.concat(
-        [train_dates_df_trees, train_categoricals_df_trees, train_numerics_df_trees],
+        [
+            train_dates_df_trees,
+            train_categoricals_df_trees,
+            train_numerics_df_trees,
+        ],
         axis=1,
     )
 
@@ -213,7 +228,9 @@ if __name__ == "__main__":
         # Linear
         test_dates_df_linear = auto_dates(test, dates_linear)
         test_numerics_df_linear = auto_numeric(test, scaler, numerics_linear)
-        test_categoricals_df_linear = auto_categorical(test, ohe, categoricals_linear)
+        test_categoricals_df_linear = auto_categorical(
+            test, ohe, categoricals_linear
+        )
         test_linear = pd.concat(
             [
                 test_dates_df_linear,
@@ -227,9 +244,15 @@ if __name__ == "__main__":
         # Trees
         test_dates_df_trees = auto_dates(test, dates_tree)
         test_numerics_df_trees = auto_numeric(test, scaler, numerics_tree)
-        test_categoricals_df_trees = auto_categorical(test, ordenc, categoricals_tree)
+        test_categoricals_df_trees = auto_categorical(
+            test, ordenc, categoricals_tree
+        )
         test_trees = pd.concat(
-            [test_dates_df_trees, test_categoricals_df_trees, test_numerics_df_trees],
+            [
+                test_dates_df_trees,
+                test_categoricals_df_trees,
+                test_numerics_df_trees,
+            ],
             axis=1,
         )
         test_trees.to_csv("data/processed/test_tress.csv", index=False)

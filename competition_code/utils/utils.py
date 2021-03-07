@@ -169,4 +169,4 @@ def lgb_r2_score(preds, dtrain_data):
     R^2 metrics for LightGBM
     """
     labels = dtrain_data.get_label()
-    return 'r2', r2_score(labels, preds), True
+    return "r2", r2_score(labels, preds), True
