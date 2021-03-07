@@ -1,5 +1,5 @@
 import argparse
-from utils import load_config, calculate_price_indices
+from utils import load_config, calculate_price_indices, date_feats
 from dateutil import parser
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
@@ -69,14 +69,40 @@ def auto_dates(train, test, dates):
         # except:
         # df[date] = pd.to_datetime(df[date]).strftime("%Y-%m-%d")
         # df[date].apply(lambda x: pd.to_datetime(x).strftime("%Y-%m-%d") if pd.notnull(x) else '')
-
-        train_dates_df[f"{date}_year"] = pd.to_datetime(train[date]).dt.year
-        train_dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
-        train_dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
-
-        test_dates_df[f"{date}_year"] = pd.to_datetime(test[date]).dt.year
-        test_dates_df[f"{date}_month"] = pd.to_datetime(test[date]).dt.month
-        test_dates_df[f"{date}_day"] = pd.to_datetime(test[date]).dt.day
+        train_dates = date_feats(
+            train[[date]],
+            date_col=date,
+            month_col="month",
+            dom_col="dayofmonth",
+            dow_col="dayofweek",
+        )
+        (
+            train_dates_df[f"{date}month"],
+            train_dates_df[f"{date}_dayofmonth"],
+            train_dates_df[f"{date}_dayofweek"],
+        ) = (
+            train_dates["month"],
+            train_dates["dayofmonth"],
+            train_dates["dayofweek"],
+        )
+        del train_dates
+        test_dates = date_feats(
+            test[[date]],
+            date_col=date,
+            month_col="month",
+            dom_col="dayofmonth",
+            dow_col="dayofweek",
+        )
+        (
+            test_dates_df[f"{date}month"],
+            test_dates_df[f"{date}_dayofmonth"],
+            test_dates_df[f"{date}_dayofweek"],
+        ) = (
+            test_dates["month"],
+            test_dates["dayofmonth"],
+            test_dates["dayofweek"],
+        )
+        del test_dates
 
     return train_dates_df, test_dates_df
 
@@ -84,7 +110,9 @@ def auto_dates(train, test, dates):
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
-    CLI.add_argument("--config_id", type=str, help="Configuration ID for training")
+    CLI.add_argument(
+        "--config_id", type=str, help="Configuration ID for training"
+    )
 
     ARGS = CLI.parse_args()
 
@@ -96,8 +124,8 @@ if __name__ == "__main__":
     # Probably will move this - Anything we want to keep
     data_processing_config = {
         "base_date": "date",
-        #'Effective Date': 'date',
-        #'Local Code': 'categorical',
+        # 'Effective Date': 'date',
+        # 'Local Code': 'categorical',
         "Name (English)": "drop",
         "Section/Products": "categorical",
         "33 Sector(Code)": "categorical",
@@ -107,7 +135,7 @@ if __name__ == "__main__":
         "Size Code (New Index Series)": "categorical",
         "Size (New Index Series)": "drop",
         "IssuedShareEquityQuote AccountingStandard": "categorical",
-        #'IssuedShareEquityQuote ModifyDate': 'date',
+        # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
         ####### stock_price
         "EndOfDayQuote Open": "numeric",
@@ -126,7 +154,9 @@ if __name__ == "__main__":
         "EndOfDayQuote VWAP": "numeric",
     }
 
-    numerics, dates, categoricals, drops = get_data_rules(data_processing_config)
+    numerics, dates, categoricals, drops = get_data_rules(
+        data_processing_config
+    )
 
     train = pd.read_csv("data/interim/train.csv")
     test = pd.read_csv("data/interim/test.csv")
@@ -148,7 +178,9 @@ if __name__ == "__main__":
     train = pd.concat(
         [train_dates_df, train_categoricals_df, train_numerics_df], axis=1
     )
-    test = pd.concat([test_dates_df, test_categoricals_df, test_numerics_df], axis=1)
+    test = pd.concat(
+        [test_dates_df, test_categoricals_df, test_numerics_df], axis=1
+    )
 
     train.to_csv("data/processed/train.csv", index=False)
     test.to_csv("data/processed/test.csv", index=False)

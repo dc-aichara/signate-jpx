@@ -56,6 +56,7 @@ def reduce_mem_usage(df, verbose=True):
         )
     return df
 
+
 def load_config(config_id: str) -> dict:
     with open("config.yml", "r") as f:
         doc = yaml.load(f, yaml.Loader)
