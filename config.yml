@@ -1,8 +1,10 @@
 ## Insert Params as you see fit in this file
 ## test_data - can be public, or private - effects the Time Series Split method. 
 ## if public will filter out all data 
+## if low_memory_mode is true - will run pipeline with only 10000 rows for functionality testing purposes. 
 
 baseline_model:
   test_model: public
   random_seed: 255
+  low_memory_mode: False
 
