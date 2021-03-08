@@ -2,6 +2,7 @@ import argparse
 from utils import load_config, calculate_price_indices, date_feats
 from dateutil import parser
 import pandas as pd
+import numpy as np
 import sklearn
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import MinMaxScaler
@@ -57,9 +58,51 @@ def auto_dates(train, dates):
     for date in dates:
         dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
         dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
-        dates_df["f{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
+        dates_df[f"{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
 
     return dates_df
+
+
+def get_technical_features(
+    df, date_col="base_date", price_col="EndOfDayQuote ExchangeOfficialClose"
+):
+    """
+    Args:
+        df (pd.DataFrame): DataFrame
+    Returns:
+        fpd.DataFrame: Feature DataFrame
+    """
+    data = df[["Local Code", date_col, price_col]]
+    datas = []
+    for code in data["Local Code"].unique():
+        feats = data[data["Local Code"] == code]
+        feats["return_1month"] = feats[price_col].pct_change(20)
+        feats["return_2month"] = feats[price_col].pct_change(40)
+        feats["return_3month"] = feats[price_col].pct_change(60)
+        feats["volatility_1month"] = (
+            np.log(feats[price_col]).diff().rolling(20).std()
+        )
+        feats["volatility_2month"] = (
+            np.log(feats[price_col]).diff().rolling(40).std()
+        )
+        feats["volatility_3month"] = (
+            np.log(feats[price_col]).diff().rolling(60).std()
+        )
+        feats["MA_gap_1month"] = feats[price_col] / (
+            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(20).mean()
+        )
+        feats["MA_gap_2month"] = feats[price_col] / (
+            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(40).mean()
+        )
+        feats["MA_gap_3month"] = feats[price_col] / (
+            feats[price_col].rolling(60).mean()
+        )
+        feats = feats.fillna(0)
+        feats = feats.drop([price_col], axis=1)
+        datas.append(feats)
+    feats = pd.concat(datas, ignore_index=True)
+    del datas, data
+    return feats
 
 
 if __name__ == "__main__":
@@ -107,6 +150,15 @@ if __name__ == "__main__":
         "EndOfDayQuote ChangeFromPreviousClose": "numeric",
         "EndOfDayQuote PercentChangeFromPreviousClose": "numeric",
         "EndOfDayQuote VWAP": "numeric",
+        "return_1month": "numeric",
+        "return_2month": "numeric",
+        "return_3month": "numeric",
+        "volatility_1month": "numeric",
+        "volatility_2month": "numeric",
+        "volatility_3month": "numeric",
+        "MA_gap_1month": "numeric",
+        "MA_gap_2month": "numeric",
+        "MA_gap_3month": "numeric",
     }
 
     tree_model_data_config = {
@@ -139,11 +191,29 @@ if __name__ == "__main__":
         "EndOfDayQuote ChangeFromPreviousClose": "numeric",
         "EndOfDayQuote PercentChangeFromPreviousClose": "numeric",
         "EndOfDayQuote VWAP": "numeric",
+        "return_1month": "numeric",
+        "return_2month": "numeric",
+        "return_3month": "numeric",
+        "volatility_1month": "numeric",
+        "volatility_2month": "numeric",
+        "volatility_3month": "numeric",
+        "MA_gap_1month": "numeric",
+        "MA_gap_2month": "numeric",
+        "MA_gap_3month": "numeric",
     }
 
-    ## Generic Steps
+    # Generic Steps
     train = pd.read_csv("data/interim/train.csv")
     test = pd.read_csv("data/interim/test.csv")
+
+    # Get simple Technical features
+    train_feat = get_technical_features(train)
+    test_feat = get_technical_features(test)
+
+    train = pd.merge(
+        train_feat, train, on=["base_date", "Local Code"], how="left"
+    )
+    test = pd.merge(test_feat, test, on=["base_date", "Local Code"], how="left")
 
     # Split into X/y Train, X/Y test
     y_train_high = train["label_high_20"]

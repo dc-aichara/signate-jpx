@@ -76,10 +76,11 @@ if __name__ == "__main__":
     print(stock_labels.shape)
     time2 = datetime.now()
     if config.get("test_model") == "public":
-        print("Removing Data as model will only be used on test set")
+        print("Removing Data as model will only be used on test_data set")
         train = stock_labels[stock_labels["base_date"] < "2020-01-01"]
-        test = stock_labels[stock_labels["base_date"] >= "2020-01-01"]
-        print(train.shape)
+        test = stock_labels[stock_labels["base_date"] >= "2020-02-01"]
+        test.reset_index(drop=True, inplace=True)
+        print(train.shape, test.shape)
 
     else:
         train = stock_labels
@@ -90,14 +91,14 @@ if __name__ == "__main__":
 
     train = pd.merge(train, stock_list, on=["Local Code"], how="left")
     print(train.shape)
-    # train = pd.merge(
-    #    train, stock_fin_price, on=["base_date", "Local Code"], how="left"
+    # train_data = pd.merge(
+    #    train_data, stock_fin_price, on=["base_date", "Local Code"], how="left"
     # )
 
     train = train[train["prediction_target"] == True]
 
-    # train = pd.merge(
-    #    train, stock_fin, on=["base_date", "Local Code"], how="left"
+    # train_data = pd.merge(
+    #    train_data, stock_fin, on=["base_date", "Local Code"], how="left"
     # )
 
     train = pd.merge(
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         test = pd.merge(test, stock_list, on=["Local Code"], how="left")
         test = test[test["prediction_target"] == True]
 
-        # test = pd.merge(test, stock_fin_price, on=["base_date", "Local Code"], how="left")
+        # test_data = pd.merge(test_data, stock_fin_price, on=["base_date", "Local Code"], how="left")
         test = pd.merge(
             test,
             stock_price,
@@ -123,7 +124,7 @@ if __name__ == "__main__":
             how="left",
         )
 
-        # test = pd.merge(test, stock_fin, on=["base_date", "Local Code"], how="left")
+        # test_data = pd.merge(test_data, stock_fin, on=["base_date", "Local Code"], how="left")
 
     time3 = datetime.now()
 
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     print(f"Data merging time {time3 - time2}")
 
     ## Begin combining data and stuff.
-    train.to_csv("data/interim/train.csv")
+    train.to_csv("data/interim/train_data.csv", index=False)
 
     if config.get("test_model") == "public":
-        test.to_csv("data/interim/test.csv")
+        test.to_csv("data/interim/test_data.csv", index=False)

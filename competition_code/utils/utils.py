@@ -2,6 +2,7 @@ import yaml
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
+from scipy.stats import spearmanr
 from PriceIndices import Indices
 
 
