@@ -107,9 +107,6 @@ if __name__ == "__main__":
         seed = config["seed"]
         valid_with_test = config.get("use_test_as_validation")
         print("Training  LightGBM!!!!!")
-
-        # Train with train_data data only
-        print(train_tree.shape, y_train_low.shape, y_train_high.shape)
         # Use test_data data as validation data
         if valid_with_test:
             print("Using Test data a validation data!!!")
