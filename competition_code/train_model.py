@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     y_test_high.fillna(method="ffill", inplace=True)
     y_test_low.fillna(method="ffill", inplace=True)
-
+    print(y_train_high.shape, y_train_low.shape, y_test_high.shape, y_test_low.shape)
     # Ridge Regression
     if config["ridge_regression"]:
         train_linear = pd.read_csv("data/processed/train_linear.csv").fillna(0)

@@ -76,26 +76,26 @@ def get_technical_features(
     datas = []
     for code in data["Local Code"].unique():
         feats = data[data["Local Code"] == code]
-        feats["return_1month"] = feats[price_col].pct_change(20)
-        feats["return_2month"] = feats[price_col].pct_change(40)
-        feats["return_3month"] = feats[price_col].pct_change(60)
+        feats["return_1month"] = feats[price_col].pct_change(7)
+        feats["return_2month"] = feats[price_col].pct_change(14)
+        feats["return_3month"] = feats[price_col].pct_change(21)
         feats["volatility_1month"] = (
-            np.log(feats[price_col]).diff().rolling(20).std()
+            np.log(feats[price_col]).diff().rolling(7).std()
         )
         feats["volatility_2month"] = (
-            np.log(feats[price_col]).diff().rolling(40).std()
+            np.log(feats[price_col]).diff().rolling(14).std()
         )
         feats["volatility_3month"] = (
-            np.log(feats[price_col]).diff().rolling(60).std()
+            np.log(feats[price_col]).diff().rolling(21).std()
         )
         feats["MA_gap_1month"] = feats[price_col] / (
-            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(20).mean()
+            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(7).mean()
         )
         feats["MA_gap_2month"] = feats[price_col] / (
-            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(40).mean()
+            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(14).mean()
         )
         feats["MA_gap_3month"] = feats[price_col] / (
-            feats[price_col].rolling(60).mean()
+            feats[price_col].rolling(21).mean()
         )
         feats = feats.fillna(0)
         feats = feats.drop([price_col], axis=1)
@@ -203,9 +203,9 @@ if __name__ == "__main__":
     }
 
     # Generic Steps
-    train = pd.read_csv("data/interim/train.csv")
-    test = pd.read_csv("data/interim/test.csv")
-
+    train = pd.read_csv("data/interim/train_data.csv")
+    test = pd.read_csv("data/interim/test_data.csv")
+    print(train.shape, test.shape)
     # Get simple Technical features
     train_feat = get_technical_features(train)
     test_feat = get_technical_features(test)
@@ -221,12 +221,12 @@ if __name__ == "__main__":
 
     y_test_high = test["label_high_20"]
     y_test_low = test["label_low_20"]
-
+    print(y_train_high.shape, y_train_low.shape, y_test_high.shape, y_test_low.shape)
     y_train_high.to_csv("data/processed/y_train_high.csv", index=False)
     y_train_low.to_csv("data/processed/y_train_low.csv", index=False)
     y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
     y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
-
+    print("Saved Labels!!!")
     # Get preproc rules
     (
         numerics_linear,
@@ -325,4 +325,4 @@ if __name__ == "__main__":
             ],
             axis=1,
         )
-        test_trees.to_csv("data/processed/test_tress.csv", index=False)
+        test_trees.to_csv("data/processed/test_trees.csv", index=False)
