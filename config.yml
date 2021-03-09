@@ -7,4 +7,25 @@ baseline_model:
   test_model: public
   random_seed: 255
   low_memory_mode: False
+  ridge_regression: True
+  alpha: 0.0001
+  lgb_model: True
+  seed: 227
+  use_test_as_validation: True
+  lgb_params: {
+      "application": "fair",
+      "num_iterations": 30,
+      "learning_rate": 0.1,
+      "early_stopping_round": 10,
+      "feature_fraction": 0.5,
+      "bagging_fraction": 0.5,
+      "subsample_freq": 1,
+      "min_data_in_leaf": 4096,
+      "metric": "lgb_spearmanr",
+      "num_leaves": 2048,
+      #"reg_alpha": 0.3899,
+      #"reg_lambda": 0.648,
+      "verbose": -1,
+      "device_type": 'cpu'
+    }
 

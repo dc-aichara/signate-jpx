@@ -2,6 +2,7 @@ import argparse
 from utils import load_config, calculate_price_indices, date_feats
 from dateutil import parser
 import pandas as pd
+import numpy as np
 import sklearn
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import MinMaxScaler
@@ -57,9 +58,55 @@ def auto_dates(train, dates):
     for date in dates:
         dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
         dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
-        dates_df["f{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
+        dates_df[f"{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
 
     return dates_df
+
+
+def get_technical_features(
+    df, date_col="base_date", price_col="EndOfDayQuote ExchangeOfficialClose",
+        periods=[7, 14, 21]
+):
+    """
+    Args:
+        df (pd.DataFrame): DataFrame
+        date_col (str): Date column in DataFrame
+        price_col (str): Price column in DataFrame
+        periods (list): List of periods to create technical features
+    Returns:
+        pd.DataFrame: Feature DataFrame
+    """
+    data = df[["Local Code", date_col, price_col]]
+    datas = []
+    for code in data["Local Code"].unique():
+        feats = data[data["Local Code"] == code]
+        feats[f"return_{periods[0]}"] = feats[price_col].pct_change(periods[0])
+        feats[f"return_{periods[1]}"] = feats[price_col].pct_change(periods[1])
+        feats[f"return_{periods[2]}"] = feats[price_col].pct_change(periods[2])
+        feats[f"volatility_{periods[0]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[0]).std()
+        )
+        feats[f"volatility_{periods[1]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[2]).std()
+        )
+        feats[f"volatility_{periods[2]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[2]).std()
+        )
+        feats[f"MA_gap_{periods[0]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[0]).mean()
+        )
+        feats[f"MA_gap_{periods[1]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[1]).mean()
+        )
+        feats[f"MA_gap_{periods[2]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[2]).mean()
+        )
+        feats = feats.fillna(0)
+        feats = feats.drop([price_col], axis=1)
+        datas.append(feats)
+    feats = pd.concat(datas, ignore_index=True)
+    del datas, data
+    return feats
 
 
 if __name__ == "__main__":
@@ -141,9 +188,32 @@ if __name__ == "__main__":
         "EndOfDayQuote VWAP": "numeric",
     }
 
-    ## Generic Steps
-    train = pd.read_csv("data/interim/train.csv")
-    test = pd.read_csv("data/interim/test.csv")
+    # Generic Steps
+    train = pd.read_csv("data/interim/train_data.csv")
+    test = pd.read_csv("data/interim/test_data.csv")
+    print(train.shape, test.shape)
+    # Get simple Technical features
+    train_feat1 = get_technical_features(train, periods=[10, 20, 30])
+    test_feat1 = get_technical_features(test, periods=[10, 20, 30])
+    train_feat2 = get_technical_features(train, periods=[14, 28, 42])
+    test_feat2 = get_technical_features(test, periods=[14, 28, 42])
+
+    train = pd.merge(
+        train_feat1, train, on=["base_date", "Local Code"], how="left"
+    )
+    test = pd.merge(test_feat1, test, on=["base_date", "Local Code"], how="left")
+
+    train = pd.merge(
+        train_feat2, train, on=["base_date", "Local Code"], how="left"
+    )
+    test = pd.merge(test_feat2, test, on=["base_date", "Local Code"],
+                    how="left")
+
+    linear_model_data_config.update({col: "numeric" for col in train_feat1.columns[2:]})
+    tree_model_data_config.update({col: "numeric" for col in train_feat1.columns[2:]})
+
+    linear_model_data_config.update({col: "numeric" for col in train_feat2.columns[2:]})
+    tree_model_data_config.update({col: "numeric" for col in train_feat2.columns[2:]})
 
     # Split into X/y Train, X/Y test
     y_train_high = train["label_high_20"]
@@ -151,12 +221,12 @@ if __name__ == "__main__":
 
     y_test_high = test["label_high_20"]
     y_test_low = test["label_low_20"]
-
+    print(y_train_high.shape, y_train_low.shape, y_test_high.shape, y_test_low.shape)
     y_train_high.to_csv("data/processed/y_train_high.csv", index=False)
     y_train_low.to_csv("data/processed/y_train_low.csv", index=False)
     y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
     y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
-
+    print("Saved Labels!!!")
     # Get preproc rules
     (
         numerics_linear,
@@ -255,4 +325,4 @@ if __name__ == "__main__":
             ],
             axis=1,
         )
-        test_trees.to_csv("data/processed/test_tress.csv", index=False)
+        test_trees.to_csv("data/processed/test_trees.csv", index=False)
