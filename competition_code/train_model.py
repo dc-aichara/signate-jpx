@@ -1,11 +1,13 @@
 import argparse
-from utils import load_config, lgb_spearmanr
+from utils import load_config, lgb_spearmanr, time_series_CV
 import pandas as pd
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import TimeSeriesSplit
 import lightgbm as lgb
 from scipy.stats import spearmanr
+import numpy as np
 
 
 def final_metric(low_corr, high_corr):
@@ -42,6 +44,102 @@ def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
     return model
 
 
+def cross_validation_ridge(data, n_splits=5):
+    ridge_cv_scores = []
+
+    folds = TimeSeriesSplit(n_splits=n_splits)
+
+    for i, (train_index, test_index) in enumerate(folds.split(data)):
+        train_cv = data.iloc[train_index]
+        test_cv = data.iloc[test_index]
+
+        train_high_cv = y_train_high.iloc[train_index]
+        test_high_cv = y_train_high.iloc[test_index]
+
+        train_low_cv = y_train_low.iloc[train_index]
+        test_low_cv = y_train_low.iloc[test_index]
+
+        model_high = linear_model.Ridge(alpha=alpha)
+        model_high.fit(train_cv, train_high_cv)
+
+        model_low = linear_model.Ridge(alpha=alpha)
+        model_low.fit(train_cv, train_low_cv)
+
+        high_preds_cv = model_high.predict(test_cv)
+        low_preds_cv = model_low.predict(test_cv)
+
+        # Evaluate Ridge
+        spearman_high = spearmanr(test_high_cv, high_preds_cv)[0]
+        spearman_low = spearmanr(test_low_cv, low_preds_cv)[0]
+
+        metric_cv = final_metric(spearman_low, spearman_high)
+
+        ridge_cv_scores.append(metric_cv)
+
+    return ridge_cv_scores
+
+
+def cross_validation_lgbm(data, param, n_splits=5):
+    lgbm_cv_scores = []
+
+    folds = TimeSeriesSplit(n_splits=n_splits)
+
+    for i, (train_index, test_index) in enumerate(folds.split(data)):
+        print(f"FOLD - {i}")
+        train = data.iloc[train_index]
+        test = data.iloc[test_index]
+
+        valid_max = train_index.max()
+        valid_min = int(len(train) * (80 / 100))
+
+        train_cv = train.loc[0:valid_min]
+        valid_cv = train.loc[valid_min:valid_max]
+
+        train_high_cv = y_train_high.loc[0:valid_min]
+        valid_high_cv = y_train_high.loc[valid_min:valid_max]
+        test_high_cv = y_train_high.iloc[test_index]
+
+        train_low_cv = y_train_low.loc[0:valid_min]
+        valid_low_cv = y_train_low.loc[valid_min:valid_max]
+        test_low_cv = y_train_low.iloc[test_index]
+
+        lgb_train = lgb.Dataset(data=train_cv, label=train_high_cv)
+        lgb_valid = lgb.Dataset(data=valid_cv, label=valid_high_cv)
+
+        model_high = lgb.train(
+            param,
+            lgb_train,
+            valid_sets=[lgb_train, lgb_valid],
+            verbose_eval=10,
+            feval=lgb_spearmanr,
+        )
+
+        high_preds_cv = model_high.predict(test)
+
+        lgb_train = lgb.Dataset(data=train_cv, label=train_low_cv)
+        lgb_valid = lgb.Dataset(data=valid_cv, label=valid_low_cv)
+
+        model_low = lgb.train(
+            param,
+            lgb_train,
+            valid_sets=[lgb_train, lgb_valid],
+            verbose_eval=10,
+            feval=lgb_spearmanr,
+        )
+
+        low_preds_cv = model_low.predict(test)
+
+        # Evaluate Ridge
+        spearman_high = spearmanr(test_high_cv, high_preds_cv)[0]
+        spearman_low = spearmanr(test_low_cv, low_preds_cv)[0]
+
+        metric_cv = final_metric(spearman_low, spearman_high)
+
+        lgbm_cv_scores.append(metric_cv)
+
+    return lgbm_cv_scores
+
+
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
@@ -63,18 +161,34 @@ if __name__ == "__main__":
 
     print(y_train_high.isnull().sum())
 
-    #### TEMPORARY FILL NAS with 0 until we figure out why they are null - only around 30 examples
+    # TEMPORARY FILL NAS with 0 until we figure out why they are null -
+    # only around 30 examples
     y_train_high.fillna(method="ffill", inplace=True)
     y_train_low.fillna(method="ffill", inplace=True)
 
     y_test_high.fillna(method="ffill", inplace=True)
     y_test_low.fillna(method="ffill", inplace=True)
-    print(y_train_high.shape, y_train_low.shape, y_test_high.shape, y_test_low.shape)
+    print(
+        y_train_high.shape,
+        y_train_low.shape,
+        y_test_high.shape,
+        y_test_low.shape,
+    )
     # Ridge Regression
     if config["ridge_regression"]:
         train_linear = pd.read_csv("data/processed/train_linear.csv").fillna(0)
         test_linear = pd.read_csv("data/processed/test_linear.csv").fillna(0)
         alpha = config["alpha"]
+
+        if config["cross_validation"] is True:
+            print("Begin Ridge- Cross Validation")
+
+            ridge_cv_scores = cross_validation_ridge(train_linear, n_splits=5)
+
+            print("Ridge Cross Validation Results")
+            print(ridge_cv_scores)
+            print(np.mean(ridge_cv_scores))
+
         print(f"Training  Ridge Regressor with Alpha = {alpha}!!!!!")
         Ridge_high = linear_model.Ridge(alpha=alpha)
         Ridge_low = linear_model.Ridge(alpha=alpha)
@@ -106,6 +220,16 @@ if __name__ == "__main__":
         params = config["lgb_params"]
         seed = config["seed"]
         valid_with_test = config.get("use_test_as_validation")
+
+        if config["cross_validation"] is True:
+            # Cross Validation
+            lgbm_cv_scores = cross_validation_lgbm(
+                train_tree, params, n_splits=5
+            )
+            print("LGBM CV scores")
+            print(lgbm_cv_scores)
+            print(np.mean(lgbm_cv_scores))
+
         print("Training  LightGBM!!!!!")
         # Use test_data data as validation data
         if valid_with_test:
@@ -140,7 +264,12 @@ if __name__ == "__main__":
                 train_tree, y_train_high, test_size=0.2, random_state=seed
             )
 
-        print(X_train_low.shape, X_valid_low.shape, y_train_low.shape,y_valid_low.shape)
+        print(
+            X_train_low.shape,
+            X_valid_low.shape,
+            y_train_low.shape,
+            y_valid_low.shape,
+        )
         model_low = train_single_lgb(
             X_train_low,
             X_valid_low,
