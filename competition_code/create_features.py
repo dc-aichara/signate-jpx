@@ -64,38 +64,42 @@ def auto_dates(train, dates):
 
 
 def get_technical_features(
-    df, date_col="base_date", price_col="EndOfDayQuote ExchangeOfficialClose"
+    df, date_col="base_date", price_col="EndOfDayQuote ExchangeOfficialClose",
+        periods=[7, 14, 21]
 ):
     """
     Args:
         df (pd.DataFrame): DataFrame
+        date_col (str): Date column in DataFrame
+        price_col (str): Price column in DataFrame
+        periods (list): List of periods to create technical features
     Returns:
-        fpd.DataFrame: Feature DataFrame
+        pd.DataFrame: Feature DataFrame
     """
     data = df[["Local Code", date_col, price_col]]
     datas = []
     for code in data["Local Code"].unique():
         feats = data[data["Local Code"] == code]
-        feats["return_1month"] = feats[price_col].pct_change(7)
-        feats["return_2month"] = feats[price_col].pct_change(14)
-        feats["return_3month"] = feats[price_col].pct_change(21)
-        feats["volatility_1month"] = (
-            np.log(feats[price_col]).diff().rolling(7).std()
+        feats[f"return_{periods[0]}"] = feats[price_col].pct_change(periods[0])
+        feats[f"return_{periods[1]}"] = feats[price_col].pct_change(periods[1])
+        feats[f"return_{periods[2]}"] = feats[price_col].pct_change(periods[2])
+        feats[f"volatility_{periods[0]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[0]).std()
         )
-        feats["volatility_2month"] = (
-            np.log(feats[price_col]).diff().rolling(14).std()
+        feats[f"volatility_{periods[1]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[2]).std()
         )
-        feats["volatility_3month"] = (
-            np.log(feats[price_col]).diff().rolling(21).std()
+        feats[f"volatility_{periods[2]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[2]).std()
         )
-        feats["MA_gap_1month"] = feats[price_col] / (
-            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(7).mean()
+        feats[f"MA_gap_{periods[0]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[0]).mean()
         )
-        feats["MA_gap_2month"] = feats[price_col] / (
-            feats["EndOfDayQuote ExchangeOfficialClose"].rolling(14).mean()
+        feats[f"MA_gap_{periods[1]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[1]).mean()
         )
-        feats["MA_gap_3month"] = feats[price_col] / (
-            feats[price_col].rolling(21).mean()
+        feats[f"MA_gap_{periods[2]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[2]).mean()
         )
         feats = feats.fillna(0)
         feats = feats.drop([price_col], axis=1)
@@ -150,15 +154,6 @@ if __name__ == "__main__":
         "EndOfDayQuote ChangeFromPreviousClose": "numeric",
         "EndOfDayQuote PercentChangeFromPreviousClose": "numeric",
         "EndOfDayQuote VWAP": "numeric",
-        "return_1month": "numeric",
-        "return_2month": "numeric",
-        "return_3month": "numeric",
-        "volatility_1month": "numeric",
-        "volatility_2month": "numeric",
-        "volatility_3month": "numeric",
-        "MA_gap_1month": "numeric",
-        "MA_gap_2month": "numeric",
-        "MA_gap_3month": "numeric",
     }
 
     tree_model_data_config = {
@@ -191,15 +186,6 @@ if __name__ == "__main__":
         "EndOfDayQuote ChangeFromPreviousClose": "numeric",
         "EndOfDayQuote PercentChangeFromPreviousClose": "numeric",
         "EndOfDayQuote VWAP": "numeric",
-        "return_1month": "numeric",
-        "return_2month": "numeric",
-        "return_3month": "numeric",
-        "volatility_1month": "numeric",
-        "volatility_2month": "numeric",
-        "volatility_3month": "numeric",
-        "MA_gap_1month": "numeric",
-        "MA_gap_2month": "numeric",
-        "MA_gap_3month": "numeric",
     }
 
     # Generic Steps
@@ -207,13 +193,27 @@ if __name__ == "__main__":
     test = pd.read_csv("data/interim/test_data.csv")
     print(train.shape, test.shape)
     # Get simple Technical features
-    train_feat = get_technical_features(train)
-    test_feat = get_technical_features(test)
+    train_feat1 = get_technical_features(train, periods=[10, 20, 30])
+    test_feat1 = get_technical_features(test, periods=[10, 20, 30])
+    train_feat2 = get_technical_features(train, periods=[14, 28, 42])
+    test_feat2 = get_technical_features(test, periods=[14, 28, 42])
 
     train = pd.merge(
-        train_feat, train, on=["base_date", "Local Code"], how="left"
+        train_feat1, train, on=["base_date", "Local Code"], how="left"
     )
-    test = pd.merge(test_feat, test, on=["base_date", "Local Code"], how="left")
+    test = pd.merge(test_feat1, test, on=["base_date", "Local Code"], how="left")
+
+    train = pd.merge(
+        train_feat2, train, on=["base_date", "Local Code"], how="left"
+    )
+    test = pd.merge(test_feat2, test, on=["base_date", "Local Code"],
+                    how="left")
+
+    linear_model_data_config.update({col: "numeric" for col in train_feat1.columns[2:]})
+    tree_model_data_config.update({col: "numeric" for col in train_feat1.columns[2:]})
+
+    linear_model_data_config.update({col: "numeric" for col in train_feat2.columns[2:]})
+    tree_model_data_config.update({col: "numeric" for col in train_feat2.columns[2:]})
 
     # Split into X/y Train, X/Y test
     y_train_high = train["label_high_20"]

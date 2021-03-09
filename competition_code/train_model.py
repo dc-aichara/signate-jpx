@@ -21,7 +21,7 @@ def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
         param,
         lgb_train,
         valid_sets=[lgb_train, lgb_valid],
-        verbose_eval=100,
+        verbose_eval=10,
         feval=lgb_spearmanr,
         # categorical_feature=cat_feats
     )
@@ -92,13 +92,13 @@ if __name__ == "__main__":
         spearman_high = spearmanr(y_test_high, high_preds)[0]
         spearman_low = spearmanr(y_test_low, low_preds)[0]
 
-        final_metric = final_metric(spearman_low, spearman_high)
+        final_metric_linear = final_metric(spearman_low, spearman_high)
 
         print(
             "Ridge Regressor: Final Leaderboard Score- Public - Test Set is "
             "same as public leaderboard."
         )
-        print(final_metric)
+        print(final_metric_linear)
 
     if config["lgb_model"]:
         train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
@@ -168,13 +168,13 @@ if __name__ == "__main__":
         spearman_high = spearmanr(y_test_high, high_preds)[0]
         spearman_low = spearmanr(y_test_low, low_preds)[0]
         print(spearman_low, spearman_high)
-        final_metric = final_metric(spearman_low, spearman_high)
+        final_metric_tree = final_metric(spearman_low, spearman_high)
 
         print(
             "LightGBM Regressor: Final Leaderboard Score- Public - Test Set is "
             "same as public leaderboard."
         )
-        print(final_metric)
+        print(final_metric_tree)
 
     # Tree Based Model - For Later
 

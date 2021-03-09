@@ -7,14 +7,14 @@ baseline_model:
   test_model: public
   random_seed: 255
   low_memory_mode: False
-  ridge_regression: False
+  ridge_regression: True
   alpha: 0.0001
   lgb_model: True
   seed: 227
   use_test_as_validation: True
   lgb_params: {
       "application": "fair",
-      "num_iterations": 200,
+      "num_iterations": 30,
       "learning_rate": 0.1,
       "early_stopping_round": 10,
       "feature_fraction": 0.5,
