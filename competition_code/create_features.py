@@ -64,8 +64,10 @@ def auto_dates(train, dates):
 
 
 def get_technical_features(
-    df, date_col="base_date", price_col="EndOfDayQuote ExchangeOfficialClose",
-        periods=[7, 14, 21]
+    df,
+    date_col="base_date",
+    price_col="EndOfDayQuote ExchangeOfficialClose",
+    periods=[7, 14, 21],
 ):
     """
     Args:
@@ -158,8 +160,8 @@ if __name__ == "__main__":
 
     tree_model_data_config = {
         "base_date": "date",
-        #'Effective Date': 'date',
-        #'Local Code': 'categorical',
+        # 'Effective Date': 'date',
+        # 'Local Code': 'categorical',
         "Name (English)": "drop",
         "Section/Products": "categorical",
         "33 Sector(Code)": "categorical",
@@ -169,7 +171,7 @@ if __name__ == "__main__":
         "Size Code (New Index Series)": "categorical",
         "Size (New Index Series)": "drop",
         "IssuedShareEquityQuote AccountingStandard": "categorical",
-        #'IssuedShareEquityQuote ModifyDate': 'date',
+        # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
         ####### stock_price
         "EndOfDayQuote Open": "numeric",
@@ -201,27 +203,92 @@ if __name__ == "__main__":
     train = pd.merge(
         train_feat1, train, on=["base_date", "Local Code"], how="left"
     )
-    test = pd.merge(test_feat1, test, on=["base_date", "Local Code"], how="left")
+    test = pd.merge(
+        test_feat1, test, on=["base_date", "Local Code"], how="left"
+    )
 
     train = pd.merge(
         train_feat2, train, on=["base_date", "Local Code"], how="left"
     )
-    test = pd.merge(test_feat2, test, on=["base_date", "Local Code"],
-                    how="left")
+    test = pd.merge(
+        test_feat2, test, on=["base_date", "Local Code"], how="left"
+    )
 
-    linear_model_data_config.update({col: "numeric" for col in train_feat1.columns[2:]})
-    tree_model_data_config.update({col: "numeric" for col in train_feat1.columns[2:]})
+    linear_model_data_config.update(
+        {col: "numeric" for col in train_feat1.columns[2:]}
+    )
+    tree_model_data_config.update(
+        {col: "numeric" for col in train_feat1.columns[2:]}
+    )
 
-    linear_model_data_config.update({col: "numeric" for col in train_feat2.columns[2:]})
-    tree_model_data_config.update({col: "numeric" for col in train_feat2.columns[2:]})
+    linear_model_data_config.update(
+        {col: "numeric" for col in train_feat2.columns[2:]}
+    )
+    tree_model_data_config.update(
+        {col: "numeric" for col in train_feat2.columns[2:]}
+    )
 
+    # Add fin columns to column type config dict
+    linear_model_data_config.update(
+        {
+            "Result_FinancialStatement AccountingStandard": "categorical",
+            "Result_FinancialStatement ReportType": "categorical",
+            "Result_FinancialStatement CompanyType": "categorical",
+            "Result_FinancialStatement ChangeOfFiscalYearEnd": "categorical",
+            "Result_FinancialStatement NetSales": "numeric",
+            "Result_FinancialStatement OperatingIncome": "numeric",
+            "Result_FinancialStatement OrdinaryIncome": "numeric",
+            "Result_FinancialStatement NetIncome": "numeric",
+            "Result_FinancialStatement TotalAssets": "numeric",
+            "Result_FinancialStatement NetAssets": "numeric",
+            "Forecast_FinancialStatement AccountingStandard": "categorical",
+            "Forecast_FinancialStatement ReportType": "categorical",
+            "Forecast_FinancialStatement NetSales": "numeric",
+            "Forecast_FinancialStatement OperatingIncome": "numeric",
+            "Forecast_FinancialStatement OrdinaryIncome": "numeric",
+            "Forecast_FinancialStatement NetIncome": "numeric",
+            "Result_Dividend ReportType": "categorical",
+            "Result_Dividend QuarterlyDividendPerShare": "numeric",
+            "Forecast_Dividend ReportType": "categorical",
+            "Forecast_Dividend QuarterlyDividendPerShare": "numeric",
+        }
+    )
+    tree_model_data_config.update(
+        {
+            "Result_FinancialStatement AccountingStandard": "categorical",
+            "Result_FinancialStatement ReportType": "categorical",
+            "Result_FinancialStatement CompanyType": "categorical",
+            "Result_FinancialStatement ChangeOfFiscalYearEnd": "categorical",
+            "Result_FinancialStatement NetSales": "numeric",
+            "Result_FinancialStatement OperatingIncome": "numeric",
+            "Result_FinancialStatement OrdinaryIncome": "numeric",
+            "Result_FinancialStatement NetIncome": "numeric",
+            "Result_FinancialStatement TotalAssets": "numeric",
+            "Result_FinancialStatement NetAssets": "numeric",
+            "Forecast_FinancialStatement AccountingStandard": "categorical",
+            "Forecast_FinancialStatement ReportType": "categorical",
+            "Forecast_FinancialStatement NetSales": "numeric",
+            "Forecast_FinancialStatement OperatingIncome": "numeric",
+            "Forecast_FinancialStatement OrdinaryIncome": "numeric",
+            "Forecast_FinancialStatement NetIncome": "numeric",
+            "Result_Dividend ReportType": "categorical",
+            "Result_Dividend QuarterlyDividendPerShare": "numeric",
+            "Forecast_Dividend ReportType": "categorical",
+            "Forecast_Dividend QuarterlyDividendPerShare": "numeric",
+        }
+    )
     # Split into X/y Train, X/Y test
     y_train_high = train["label_high_20"]
     y_train_low = train["label_low_20"]
 
     y_test_high = test["label_high_20"]
     y_test_low = test["label_low_20"]
-    print(y_train_high.shape, y_train_low.shape, y_test_high.shape, y_test_low.shape)
+    print(
+        y_train_high.shape,
+        y_train_low.shape,
+        y_test_high.shape,
+        y_test_low.shape,
+    )
     y_train_high.to_csv("data/processed/y_train_high.csv", index=False)
     y_train_low.to_csv("data/processed/y_train_low.csv", index=False)
     y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
