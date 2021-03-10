@@ -11,15 +11,15 @@ baseline_model:
   alpha: 0.0001
   lgb_model: True
   seed: 227
-  cross_validation: True
+  cross_validation: False
   use_test_as_validation: True
   lgb_params: {
       "application": "fair",
       "num_iterations": 300,
       "learning_rate": 0.1,
       "early_stopping_round": 10,
-      "feature_fraction": 0.5,
-      "bagging_fraction": 0.5,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.9,
       "subsample_freq": 1,
       #"min_data_in_leaf": 4096,
       "metric": "lgb_spearmanr",
