@@ -94,29 +94,19 @@ def calculate_price_indices(
         pd.DataFrame: A Pandas DataFrame with price indicators as columns.
 
     """
-    # df = data[["Local Code", date_col, price_col]]
     df = data.copy()
     indices = Indices(df, date_col=date_col, price_col=price_col)
-    # df_bi = indices.get_vola_index()
-    # df_bi.drop(price_col, axis=1, inplace=True)
     df_rsi = indices.get_rsi()
     df_rsi.drop([price_col, "RS_Smooth", "RSI_1"], axis=1, inplace=True)
-    # df_sma = indices.get_simple_moving_average()
-    # df_sma.drop([price_col], axis=1, inplace=True)
     df_bb = indices.get_bollinger_bands()
     df_bb.drop([price_col], axis=1, inplace=True)
-    # df_ema = indices.get_exponential_moving_average([20, 50])
-    # df_ema.drop([price_col], axis=1, inplace=True)
     df_macd = indices.get_moving_average_convergence_divergence()
     df_macd.drop([price_col], axis=1, inplace=True)
 
     df = pd.merge(df, df_macd, on=[date_col, "Local Code"], how="left")
     df = pd.merge(df, df_rsi, on=[date_col, "Local Code"], how="left")
-    # df = pd.merge(df, df_bi,  on=[date_col, "Local Code"], how="left")
     df = pd.merge(df, df_bb, on=[date_col, "Local Code"], how="left")
-    # df = pd.merge(df, df_ema,  on=[date_col, "Local Code"], how="left")
-    # df = pd.merge(df, df_sma,  on=[date_col, "Local Code"], how="left")
-    del df_bb, df_macd, df_rsi  # , df_ema, # , df_bi, df_sma,
+    del df_bb, df_macd, df_rsi
     df.rename(columns={"RSI_2": "RSI"}, inplace=True)
     df.fillna(0)
     df.sort_values(date_col, ascending=False, inplace=True)
