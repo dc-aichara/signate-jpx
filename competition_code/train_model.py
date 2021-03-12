@@ -179,7 +179,7 @@ if __name__ == "__main__":
         train_linear = pd.read_csv("data/processed/train_linear.csv").fillna(0)
         test_linear = pd.read_csv("data/processed/test_linear.csv").fillna(0)
         alpha = config["alpha"]
-
+        print(train_linear.shape, test_linear.shape)
         if config["cross_validation"] is True:
             print("Begin Ridge- Cross Validation")
 
@@ -212,11 +212,13 @@ if __name__ == "__main__":
             "Ridge Regressor: Final Leaderboard Score- Public - Test Set is "
             "same as public leaderboard."
         )
+        print(spearman_low, spearman_high)
         print(final_metric_linear)
 
     if config["lgb_model"]:
         train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
         test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
+        print(train_tree.shape, test_tree.shape)
         params = config["lgb_params"]
         seed = config["seed"]
         valid_with_test = config.get("use_test_as_validation")

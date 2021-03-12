@@ -68,6 +68,7 @@ def get_technical_features(
     date_col="base_date",
     price_col="EndOfDayQuote ExchangeOfficialClose",
     periods=[7, 14, 21],
+    extra_feats=False,
 ):
     """
     Args:
@@ -75,13 +76,22 @@ def get_technical_features(
         date_col (str): Date column in DataFrame
         price_col (str): Price column in DataFrame
         periods (list): List of periods to create technical features
+        extra_feats (bool): If create extra features from Priceindices
     Returns:
         pd.DataFrame: Feature DataFrame
     """
     data = df[["Local Code", date_col, price_col]]
+    data = data.sort_values(date_col)
     datas = []
     for code in data["Local Code"].unique():
         feats = data[data["Local Code"] == code]
+        if extra_feats:
+            feats = calculate_price_indices(
+                feats, date_col=date_col, price_col=price_col
+            )
+        feats[f"EMA_{periods[1]}"] = (
+            feats[price_col].ewm(span=periods[2], adjust=False).mean()
+        )
         feats[f"return_{periods[0]}"] = feats[price_col].pct_change(periods[0])
         feats[f"return_{periods[1]}"] = feats[price_col].pct_change(periods[1])
         feats[f"return_{periods[2]}"] = feats[price_col].pct_change(periods[2])
@@ -141,7 +151,7 @@ if __name__ == "__main__":
         "IssuedShareEquityQuote AccountingStandard": "categorical",
         # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
-        ####### stock_price
+        # stock_price
         "EndOfDayQuote Open": "numeric",
         "EndOfDayQuote High": "numeric",
         "EndOfDayQuote Low": "numeric",
@@ -173,7 +183,7 @@ if __name__ == "__main__":
         "IssuedShareEquityQuote AccountingStandard": "categorical",
         # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
-        ####### stock_price
+        # stock_price
         "EndOfDayQuote Open": "numeric",
         "EndOfDayQuote High": "numeric",
         "EndOfDayQuote Low": "numeric",
@@ -194,31 +204,37 @@ if __name__ == "__main__":
     train = pd.read_csv("data/interim/train_data.csv")
     test = pd.read_csv("data/interim/test_data.csv")
     print(train.shape, test.shape)
+
     # Get simple Technical features
-    train_feat1 = get_technical_features(train, periods=[10, 20, 30])
-    test_feat1 = get_technical_features(test, periods=[10, 20, 30])
+    train_feat1 = get_technical_features(
+        train, periods=[10, 20, 30], extra_feats=True
+    )
+    test_feat1 = get_technical_features(
+        test, periods=[10, 20, 30], extra_feats=True
+    )
+    print(train_feat1.columns)
+
+    train = pd.merge(
+        train, train_feat1, on=["base_date", "Local Code"], how="left"
+    )
+    test = pd.merge(
+        test, test_feat1, on=["base_date", "Local Code"], how="left"
+    )
+    linear_model_data_config.update(
+        {col: "numeric" for col in train_feat1.columns[2:]}
+    )
+    tree_model_data_config.update(
+        {col: "numeric" for col in train_feat1.columns[2:]}
+    )
+    del train_feat1, test_feat1
     train_feat2 = get_technical_features(train, periods=[14, 28, 42])
     test_feat2 = get_technical_features(test, periods=[14, 28, 42])
 
     train = pd.merge(
-        train_feat1, train, on=["base_date", "Local Code"], how="left"
+        train, train_feat2, on=["base_date", "Local Code"], how="left"
     )
     test = pd.merge(
-        test_feat1, test, on=["base_date", "Local Code"], how="left"
-    )
-
-    train = pd.merge(
-        train_feat2, train, on=["base_date", "Local Code"], how="left"
-    )
-    test = pd.merge(
-        test_feat2, test, on=["base_date", "Local Code"], how="left"
-    )
-
-    linear_model_data_config.update(
-        {col: "numeric" for col in train_feat1.columns[2:]}
-    )
-    tree_model_data_config.update(
-        {col: "numeric" for col in train_feat1.columns[2:]}
+        test, test_feat2, on=["base_date", "Local Code"], how="left"
     )
 
     linear_model_data_config.update(
@@ -227,10 +243,23 @@ if __name__ == "__main__":
     tree_model_data_config.update(
         {col: "numeric" for col in train_feat2.columns[2:]}
     )
+    del train_feat2, test_feat2
+    print(train.shape, test.shape)
+    drop_data = config.get("drop_data")
+    if drop_data:
+        drop_data_train_date = config.get("drop_data_train_date")
+        drop_data_test_date = config.get("drop_data_test_date")
+        print("Drop dates:", drop_data_test_date, drop_data_train_date)
+        train = train[train["base_date"] >= drop_data_train_date]
+        test = test[test["base_date"] >= drop_data_test_date]
+    train.reset_index(drop=True, inplace=True)
+    test.reset_index(drop=True, inplace=True)
+    print(train.shape, test.shape)
 
-    # Add fin columns to column type config dict
-    linear_model_data_config.update(
-        {
+    use_fin_data = config.get("use_fin_data")
+    if use_fin_data:
+        # Add fin columns to column type config dict
+        fin_cols_config = {
             "Result_FinancialStatement AccountingStandard": "categorical",
             "Result_FinancialStatement ReportType": "categorical",
             "Result_FinancialStatement CompanyType": "categorical",
@@ -252,48 +281,30 @@ if __name__ == "__main__":
             "Forecast_Dividend ReportType": "categorical",
             "Forecast_Dividend QuarterlyDividendPerShare": "numeric",
         }
-    )
-    tree_model_data_config.update(
-        {
-            "Result_FinancialStatement AccountingStandard": "categorical",
-            "Result_FinancialStatement ReportType": "categorical",
-            "Result_FinancialStatement CompanyType": "categorical",
-            "Result_FinancialStatement ChangeOfFiscalYearEnd": "categorical",
-            "Result_FinancialStatement NetSales": "numeric",
-            "Result_FinancialStatement OperatingIncome": "numeric",
-            "Result_FinancialStatement OrdinaryIncome": "numeric",
-            "Result_FinancialStatement NetIncome": "numeric",
-            "Result_FinancialStatement TotalAssets": "numeric",
-            "Result_FinancialStatement NetAssets": "numeric",
-            "Forecast_FinancialStatement AccountingStandard": "categorical",
-            "Forecast_FinancialStatement ReportType": "categorical",
-            "Forecast_FinancialStatement NetSales": "numeric",
-            "Forecast_FinancialStatement OperatingIncome": "numeric",
-            "Forecast_FinancialStatement OrdinaryIncome": "numeric",
-            "Forecast_FinancialStatement NetIncome": "numeric",
-            "Result_Dividend ReportType": "categorical",
-            "Result_Dividend QuarterlyDividendPerShare": "numeric",
-            "Forecast_Dividend ReportType": "categorical",
-            "Forecast_Dividend QuarterlyDividendPerShare": "numeric",
-        }
-    )
+        linear_model_data_config.update(fin_cols_config)
+        tree_model_data_config.update(fin_cols_config)
+
     # Split into X/y Train, X/Y test
     y_train_high = train["label_high_20"]
     y_train_low = train["label_low_20"]
 
     y_test_high = test["label_high_20"]
     y_test_low = test["label_low_20"]
+
     print(
         y_train_high.shape,
         y_train_low.shape,
         y_test_high.shape,
         y_test_low.shape,
+        train.shape,
+        test.shape,
     )
     y_train_high.to_csv("data/processed/y_train_high.csv", index=False)
     y_train_low.to_csv("data/processed/y_train_low.csv", index=False)
     y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
     y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
     print("Saved Labels!!!")
+    del y_test_low, y_test_high, y_train_high, y_train_low
     # Get preproc rules
     (
         numerics_linear,
@@ -337,7 +348,7 @@ if __name__ == "__main__":
     )
 
     train_linear.to_csv("data/processed/train_linear.csv", index=False)
-
+    del train_linear
     # Trees
     print("Begin Tree Processing")
     train_dates_df_trees = auto_dates(train, dates_tree)
@@ -358,7 +369,7 @@ if __name__ == "__main__":
     )
 
     train_trees.to_csv("data/processed/train_trees.csv", index=False)
-
+    del train_trees
     if config.get("test_model") == "public":
         # Only for our own evaluation purposes
 
@@ -376,6 +387,7 @@ if __name__ == "__main__":
             ],
             axis=1,
         )
+        print("Test linear data shape", test_linear.shape)
         test_linear.to_csv("data/processed/test_linear.csv", index=False)
 
         # Trees
@@ -392,4 +404,5 @@ if __name__ == "__main__":
             ],
             axis=1,
         )
+        print("Test tree data shape", test_trees.shape)
         test_trees.to_csv("data/processed/test_trees.csv", index=False)
