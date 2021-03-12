@@ -37,6 +37,9 @@ if __name__ == "__main__":
 
     print("Make Dataset !!!!")
     config = load_config(config_id)
+    use_fin_data = config.get("use_fin_data")
+    train_split_date = config.get("train_split_date", "2020-01-01")
+    test_split_date = config.get("test_split_date", "2020-01-01")
     time1 = datetime.now()
     (
         stock_price,
@@ -68,13 +71,15 @@ if __name__ == "__main__":
     # Fill NAs
     stock_fin.fillna(method="ffill", inplace=True)
     stock_fin.fillna(method="bfill", inplace=True)
-    stock_price = pd.merge(
-        stock_price, stock_fin, on=["base_date", "Local Code"], how="left"
-    )
-    stock_price.fillna(method="ffill", inplace=True)
 
-    print("NAs percentage in each columns after merge and NA fill.")
-    print(stock_price.isnull().sum() / len(stock_price) * 100)
+    if use_fin_data:
+        stock_price = pd.merge(
+            stock_price, stock_fin, on=["base_date", "Local Code"], how="left"
+        )
+        stock_price.fillna(method="ffill", inplace=True)
+        print("NAs percentage in each columns after merge and NA fill.")
+        print(stock_price.isnull().sum() / len(stock_price) * 100)
+
     stock_labels = format_dates(
         stock_labels,
         ["base_date", "label_date_5", "label_date_10", "label_date_20"],
@@ -83,8 +88,10 @@ if __name__ == "__main__":
     print(stock_labels.shape)
     if config.get("test_model") == "public":
         print("Removing Data as model will only be used on test_data set")
-        train = stock_labels[stock_labels["base_date"] < "2020-01-01"]
-        test = stock_labels[stock_labels["base_date"] >= "2020-02-01"]
+        # train = stock_labels[stock_labels["base_date"] < "2020-01-01"]
+        # test = stock_labels[stock_labels["base_date"] >= "2020-02-01"]
+        train = stock_labels[stock_labels["base_date"] < train_split_date]
+        test = stock_labels[stock_labels["base_date"] >= test_split_date]
         test.reset_index(drop=True, inplace=True)
         print(train.shape, test.shape)
 
@@ -107,7 +114,8 @@ if __name__ == "__main__":
         how="left",
     )
     # Drop first few rows of train data which has NAs.
-    train.dropna(subset=["Forecast_Dividend FiscalPeriodEnd"], inplace=True)
+    if use_fin_data:
+        train.dropna(subset=["Forecast_Dividend FiscalPeriodEnd"], inplace=True)
     train.reset_index(inplace=True, drop=True)
 
     # Handle Test
