@@ -1,0 +1,11 @@
+## Optional Docker-Compose which starts up a notebook environment and pipeline environment
+version: "3.7"
+services:
+    signate_jpx_serving:
+        container_name: "signate_jpx_serving"
+        image: "signate_jpx_serving:latest"
+        tty: true
+        build: 
+            context: .
+        volumes: 
+            - .:/app
