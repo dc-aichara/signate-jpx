@@ -259,7 +259,7 @@ if __name__ == "__main__":
                 y_train_low,
                 y_valid_low,
             ) = train_test_split(
-                train_tree, y_train_low, test_size=0.2, random_state=seed
+                train_tree, y_train_low, test_size=0.2, shuffle=False
             )
             (
                 X_train_high,
@@ -267,7 +267,7 @@ if __name__ == "__main__":
                 y_train_high,
                 y_valid_high,
             ) = train_test_split(
-                train_tree, y_train_high, test_size=0.2, random_state=seed
+                train_tree, y_train_high, test_size=0.2, shuffle=False
             )
 
         print(
