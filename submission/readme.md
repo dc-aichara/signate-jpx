@@ -13,6 +13,9 @@ How to setup docker in exactly the way they want for testing.
 ### Testing 
 The below functions are all what we must ensure are working for our submission. 
 
+Before you start you need to run the shell script which will do all the prepatory work for our submission. 
+```sh prepare_submission.sh```
+
 First type python to start using python commands. \
 ```python ```
 
