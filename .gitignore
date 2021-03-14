@@ -5,10 +5,16 @@ data/interim/*.csv
 data/submissions/*.csv
 models/*.txt
 models/*.csv
+!submission/model/.gitkeep
 *.gz
 .DS_Store
 __pycache__/
 *.png
+
+# Models
+*.pkl
+*.model
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

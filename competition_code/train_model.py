@@ -259,7 +259,7 @@ if __name__ == "__main__":
                 y_train_low,
                 y_valid_low,
             ) = train_test_split(
-                train_tree, y_train_low, test_size=0.2, random_state=seed
+                train_tree, y_train_low, test_size=0.2, shuffle=False
             )
             (
                 X_train_high,
@@ -267,7 +267,7 @@ if __name__ == "__main__":
                 y_train_high,
                 y_valid_high,
             ) = train_test_split(
-                train_tree, y_train_high, test_size=0.2, random_state=seed
+                train_tree, y_train_high, test_size=0.2, shuffle=False
             )
 
         print(
@@ -282,7 +282,7 @@ if __name__ == "__main__":
             y_train_low,
             y_valid_low,
             params,
-            "models/low_lgb",
+            "models/lgb_label_low_20",
         )
         model_high = train_single_lgb(
             X_train_high,
@@ -290,7 +290,7 @@ if __name__ == "__main__":
             y_train_high,
             y_valid_high,
             params,
-            "models/high_lgb",
+            "models/lgb_label_high_20",
         )
 
         high_preds = model_high.predict(test_tree)
