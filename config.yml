@@ -14,11 +14,11 @@ baseline_model:
   drop_data: False
   drop_data_train_date: "2016-02-01"
   drop_data_test_date: "2020-01-01"
-  ridge_regression: True
-  alpha: 0.0001
-  cross_validation: False
+  ridge_regression: False
+  alpha: 1.0
+  cross_validation: True
   lgb_model: True
-  use_test_as_validation: True
+  use_test_as_validation: False
   seed: 227
   lgb_params: {
       "application": "fair",

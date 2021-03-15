@@ -4,6 +4,27 @@ import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 from scipy.stats import spearmanr
 from PriceIndices import Indices
+import sklearn
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
+from sklearn.preprocessing import MinMaxScaler
+
+
+def load_data(data_dir: str = "data/raw/"):
+    print(f"Loading data from {data_dir}")
+    stock_labels = pd.read_csv(f"{data_dir}stock_labels.csv.gz")
+    stock_fin = pd.read_csv(f"{data_dir}stock_fin.csv.gz")
+    stock_list = pd.read_csv(f"{data_dir}stock_list.csv.gz")
+    stock_price = pd.read_csv(f"{data_dir}stock_price.csv.gz")
+
+    return stock_price, stock_fin, stock_list, stock_labels
+
+
+def format_dates(df: pd.DataFrame, columns: list):
+
+    for column in columns:
+        df[column] = pd.to_datetime(df[column]).dt.strftime("%Y-%m-%d")
+
+    return df
 
 
 def reduce_mem_usage(df, verbose=True):
@@ -159,3 +180,116 @@ def lgb_r2_score(preds, dtrain_data):
     """
     labels = dtrain_data.get_label()
     return "r2", r2_score(labels, preds), True
+
+
+def get_data_rules(config: dict):
+    numerics = []
+    dates = []
+    categoricals = []
+    drops = []
+
+    for key, value in config.items():
+        if value == "numeric":
+            numerics.append(key)
+        if value == "date":
+            dates.append(key)
+        if value == "categorical":
+            categoricals.append(key)
+        if value == "drop":
+            drops.append(key)
+
+    return numerics, dates, categoricals, drops
+
+
+def auto_categorical(df, encoder, categoricals):
+    for category in categoricals:
+        df[category] = df[category].fillna("no_category").astype(str)
+
+    transformed_df = pd.DataFrame(encoder.transform(df[categoricals]))
+
+    # if ohe
+    if isinstance(encoder, sklearn.preprocessing._encoders.OneHotEncoder):
+        print("OHE")
+        transformed_df.columns = encoder.get_feature_names()
+
+    if isinstance(encoder, sklearn.preprocessing._encoders.OrdinalEncoder):
+        print("Ordinal Encoder")
+        transformed_df.columns = categoricals
+
+    return transformed_df
+
+
+def auto_numeric(df, scaler, numerics):
+    numerics_df = pd.DataFrame(scaler.transform(df[numerics]))
+    numerics_df.columns = numerics
+
+    return numerics_df
+
+
+def auto_dates(train, dates):
+    # DF with all the dates
+    dates_df = pd.DataFrame()
+    for date in dates:
+        dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
+        dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
+        dates_df[f"{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
+
+    return dates_df
+
+
+def get_technical_features(
+    df,
+    date_col="base_date",
+    price_col="EndOfDayQuote ExchangeOfficialClose",
+    periods=[7, 14, 21],
+    extra_feats=False,
+):
+    """
+    Args:
+        df (pd.DataFrame): DataFrame
+        date_col (str): Date column in DataFrame
+        price_col (str): Price column in DataFrame
+        periods (list): List of periods to create technical features
+        extra_feats (bool): If create extra features from Priceindices
+    Returns:
+        pd.DataFrame: Feature DataFrame
+    """
+    data = df[["Local Code", date_col, price_col]]
+    data = data.sort_values(date_col)
+    datas = []
+    for code in data["Local Code"].unique():
+        feats = data[data["Local Code"] == code]
+        if extra_feats:
+            feats = calculate_price_indices(
+                feats, date_col=date_col, price_col=price_col
+            )
+        feats[f"EMA_{periods[1]}"] = (
+            feats[price_col].ewm(span=periods[2], adjust=False).mean()
+        )
+        feats[f"return_{periods[0]}"] = feats[price_col].pct_change(periods[0])
+        feats[f"return_{periods[1]}"] = feats[price_col].pct_change(periods[1])
+        feats[f"return_{periods[2]}"] = feats[price_col].pct_change(periods[2])
+        feats[f"volatility_{periods[0]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[0]).std()
+        )
+        feats[f"volatility_{periods[1]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[2]).std()
+        )
+        feats[f"volatility_{periods[2]}"] = (
+            np.log(feats[price_col]).diff().rolling(periods[2]).std()
+        )
+        feats[f"MA_gap_{periods[0]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[0]).mean()
+        )
+        feats[f"MA_gap_{periods[1]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[1]).mean()
+        )
+        feats[f"MA_gap_{periods[2]}"] = feats[price_col] / (
+            feats[price_col].rolling(periods[2]).mean()
+        )
+        feats = feats.fillna(0)
+        feats = feats.drop([price_col], axis=1)
+        datas.append(feats)
+    feats = pd.concat(datas, ignore_index=True)
+    del datas, data
+    return feats

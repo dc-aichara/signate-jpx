@@ -1,124 +1,17 @@
 import argparse
-from utils import load_config, calculate_price_indices, date_feats
-from dateutil import parser
+from utils import (
+    load_config,
+    get_data_rules,
+    auto_categorical,
+    auto_numeric,
+    auto_dates,
+    get_technical_features,
+)
 import pandas as pd
-import numpy as np
-import sklearn
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import MinMaxScaler
-
-
-def get_data_rules(config: dict):
-    numerics = []
-    dates = []
-    categoricals = []
-    drops = []
-
-    for key, value in config.items():
-        if value == "numeric":
-            numerics.append(key)
-        if value == "date":
-            dates.append(key)
-        if value == "categorical":
-            categoricals.append(key)
-        if value == "drop":
-            drops.append(key)
-
-    return numerics, dates, categoricals, drops
-
-
-def auto_categorical(df, encoder, categoricals):
-    for category in categoricals:
-        df[category] = df[category].fillna("no_category").astype(str)
-
-    transformed_df = pd.DataFrame(encoder.transform(df[categoricals]))
-
-    # if ohe
-    if isinstance(encoder, sklearn.preprocessing._encoders.OneHotEncoder):
-        print("OHE")
-        transformed_df.columns = encoder.get_feature_names()
-
-    if isinstance(encoder, sklearn.preprocessing._encoders.OrdinalEncoder):
-        print("Ordinal Encoder")
-        transformed_df.columns = categoricals
-
-    return transformed_df
-
-
-def auto_numeric(df, scaler, numerics):
-    numerics_df = pd.DataFrame(scaler.transform(df[numerics]))
-    numerics_df.columns = numerics
-
-    return numerics_df
-
-
-def auto_dates(train, dates):
-    # DF with all the dates
-    dates_df = pd.DataFrame()
-    for date in dates:
-        dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
-        dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
-        dates_df[f"{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
-
-    return dates_df
-
-
-def get_technical_features(
-    df,
-    date_col="base_date",
-    price_col="EndOfDayQuote ExchangeOfficialClose",
-    periods=[7, 14, 21],
-    extra_feats=False,
-):
-    """
-    Args:
-        df (pd.DataFrame): DataFrame
-        date_col (str): Date column in DataFrame
-        price_col (str): Price column in DataFrame
-        periods (list): List of periods to create technical features
-        extra_feats (bool): If create extra features from Priceindices
-    Returns:
-        pd.DataFrame: Feature DataFrame
-    """
-    data = df[["Local Code", date_col, price_col]]
-    data = data.sort_values(date_col)
-    datas = []
-    for code in data["Local Code"].unique():
-        feats = data[data["Local Code"] == code]
-        if extra_feats:
-            feats = calculate_price_indices(
-                feats, date_col=date_col, price_col=price_col
-            )
-        feats[f"EMA_{periods[1]}"] = (
-            feats[price_col].ewm(span=periods[2], adjust=False).mean()
-        )
-        feats[f"return_{periods[0]}"] = feats[price_col].pct_change(periods[0])
-        feats[f"return_{periods[1]}"] = feats[price_col].pct_change(periods[1])
-        feats[f"return_{periods[2]}"] = feats[price_col].pct_change(periods[2])
-        feats[f"volatility_{periods[0]}"] = (
-            np.log(feats[price_col]).diff().rolling(periods[0]).std()
-        )
-        feats[f"volatility_{periods[1]}"] = (
-            np.log(feats[price_col]).diff().rolling(periods[2]).std()
-        )
-        feats[f"volatility_{periods[2]}"] = (
-            np.log(feats[price_col]).diff().rolling(periods[2]).std()
-        )
-        feats[f"MA_gap_{periods[0]}"] = feats[price_col] / (
-            feats[price_col].rolling(periods[0]).mean()
-        )
-        feats[f"MA_gap_{periods[1]}"] = feats[price_col] / (
-            feats[price_col].rolling(periods[1]).mean()
-        )
-        feats[f"MA_gap_{periods[2]}"] = feats[price_col] / (
-            feats[price_col].rolling(periods[2]).mean()
-        )
-        feats = feats.fillna(0)
-        feats = feats.drop([price_col], axis=1)
-        datas.append(feats)
-    feats = pd.concat(datas, ignore_index=True)
-    del datas, data
-    return feats
+import json
+import pickle
 
 
 if __name__ == "__main__":
@@ -351,6 +244,7 @@ if __name__ == "__main__":
     del train_linear
     # Trees
     print("Begin Tree Processing")
+
     train_dates_df_trees = auto_dates(train, dates_tree)
     ordenc = OrdinalEncoder()
     ordenc.fit(train[categoricals_tree])
@@ -406,3 +300,23 @@ if __name__ == "__main__":
         )
         print("Test tree data shape", test_trees.shape)
         test_trees.to_csv("data/processed/test_trees.csv", index=False)
+
+        # Save Model Objects
+        scaler_output = open("models/scaler.pkl", "wb")
+        pickle.dump(scaler, scaler_output)
+
+        ordenc_output = open("models/ordenc.pkl", "wb")
+        pickle.dump(ordenc, ordenc_output)
+
+        # Create Metadata for serving
+        metadata = {
+            "categorical": categoricals_tree,
+            "dates": dates_tree,
+            "numeric": numerics_tree,
+            "col_order": test_trees.columns.to_list(),
+        }
+
+        print(metadata)
+
+        with open("models/metadata.json", "w") as fp:
+            json.dump(metadata, fp, indent=2)

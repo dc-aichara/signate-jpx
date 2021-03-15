@@ -3,25 +3,9 @@ import pandas as pd
 from utils import load_config
 from utils import time_series_CV
 from utils import reduce_mem_usage
+from utils import load_data
+from utils import format_dates
 from datetime import datetime
-
-
-def load_data(data_dir: str = "data/raw/"):
-    print(f"Loading data from {data_dir}")
-    stock_labels = pd.read_csv(f"{data_dir}stock_labels.csv.gz")
-    stock_fin = pd.read_csv(f"{data_dir}stock_fin.csv.gz")
-    stock_list = pd.read_csv(f"{data_dir}stock_list.csv.gz")
-    stock_price = pd.read_csv(f"{data_dir}stock_price.csv.gz")
-
-    return stock_price, stock_fin, stock_list, stock_labels
-
-
-def format_dates(df: pd.DataFrame, columns: list):
-
-    for column in columns:
-        df[column] = pd.to_datetime(df[column]).dt.strftime("%Y-%m-%d")
-
-    return df
 
 
 if __name__ == "__main__":

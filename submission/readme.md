@@ -1,33 +1,36 @@
 ## Setup Guide
-How to setup docker in exactly the way they want for testing. 
+How to set up docker in exactly the way they want for testing. 
+
+Before you start you need to run the shell script which will do all the preparatory work for our submission. This script will move various files needed to test.
+```bash
+cd submission
+```
+```bash
+sh prepare_submission.sh
+```
 
 ### Build  
-```docker build signate_jpx_serving```
+```bash
+docker-compose build
+```
 
 ### Start Container 
-```docker-compose up```
+```bash
+docker-compose up
+```
 
 ### Enter Container 
-```docker exec -it signate_jpx_serving /bin/bash```
+```bash
+docker exec -it signate_jpx_serving /bin/bash
+```
 
-### Testing 
-The below functions are all what we must ensure are working for our submission. 
+### Testing
+
+Run submission testing script to test submission
+
+```bash
+cd src
+python test_submission.py
+```
 
 
-Before you start you must run the following shell script which will prepare our work. 
-```sh prepare_submission.sh```
-
-First type python to start using python commands. \
-```python ```
-
-path tbd
-
-```DATASET_DIR= "/path/to"```
-
-```from predictor import ScoringService```
-
-```inputs = ScoringService.get_inputs(DATASET_DIR) ```
-
-```ScoringService.get_model()```
-
-```ScoringService.predict(inputs)```
