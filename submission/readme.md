@@ -24,11 +24,13 @@ docker-compose up
 docker exec -it signate_jpx_serving /bin/bash
 ```
 
-### Testing 
-The below functions are all what we must ensure are working for our submission. 
+### Testing
 
-There is a test script called test_submission.py which can be used to activate testing. 
+Run submission testing script to test submission
+
 ```bash
+cd src
 python test_submission.py
 ```
+
 
