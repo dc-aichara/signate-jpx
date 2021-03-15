@@ -34,8 +34,8 @@ if __name__ == "__main__":
         print("Making predictions with LighGBMs!!!!!")
         test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
         print(test_tree.shape, y_test_high.shape)
-        model_low = lgb.Booster(model_file="models/low_lgb.txt")
-        model_high = lgb.Booster(model_file="models/high_lgb.txt")
+        model_low = lgb.Booster(model_file="models/lgb_label_low_20.txt")
+        model_high = lgb.Booster(model_file="models/lgb_label_high_20.txt")
 
         t1 = datetime.now()
         high_preds = model_high.predict(test_tree)

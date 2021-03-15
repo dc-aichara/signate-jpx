@@ -12,5 +12,5 @@ from .utils import (
     auto_categorical,
     auto_numeric,
     auto_dates,
-    get_technical_features
+    get_technical_features,
 )

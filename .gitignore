@@ -11,10 +11,14 @@ models/*.csv
 __pycache__/
 *.png
 
+
 # Models
 *.pkl
 *.model
 *.txt
+
+# Metadata
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

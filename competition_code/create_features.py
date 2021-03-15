@@ -1,9 +1,13 @@
 import argparse
-from utils import load_config, calculate_price_indices, date_feats, get_data_rules, auto_categorical, auto_numeric, auto_dates, get_technical_features
-from dateutil import parser
+from utils import (
+    load_config,
+    get_data_rules,
+    auto_categorical,
+    auto_numeric,
+    auto_dates,
+    get_technical_features,
+)
 import pandas as pd
-import numpy as np
-import sklearn
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.preprocessing import MinMaxScaler
 import json
@@ -297,25 +301,22 @@ if __name__ == "__main__":
         print("Test tree data shape", test_trees.shape)
         test_trees.to_csv("data/processed/test_trees.csv", index=False)
 
-
         # Save Model Objects
-        scaler_output = open('models/scaler.pkl', 'wb')
+        scaler_output = open("models/scaler.pkl", "wb")
         pickle.dump(scaler, scaler_output)
 
-        ordenc_output = open('models/ordenc.pkl', 'wb')
+        ordenc_output = open("models/ordenc.pkl", "wb")
         pickle.dump(ordenc, ordenc_output)
 
-
-        # Create Metadata for serving 
-        metadata = {} 
-
-        metadata['categorical'] = categoricals_tree
-        metadata['dates'] = dates_tree
-        metadata['numeric'] = numerics_tree
-        metadata['col_order'] = test_trees.columns.to_list()
+        # Create Metadata for serving
+        metadata = {
+            "categorical": categoricals_tree,
+            "dates": dates_tree,
+            "numeric": numerics_tree,
+            "col_order": test_trees.columns.to_list(),
+        }
 
         print(metadata)
 
-        with open('models/metadata.json', 'w') as fp:
-            json.dump(metadata, fp)
-
+        with open("models/metadata.json", "w") as fp:
+            json.dump(metadata, fp, indent=2)

@@ -207,8 +207,8 @@ if __name__ == "__main__":
         spearman_low = spearmanr(y_test_low, low_preds)[0]
 
         original_data = pd.read_csv("data/interim/test_data.csv")
-        original_data['rr_high'] = high_preds
-        original_data['rr_low'] = low_preds
+        original_data["rr_high"] = high_preds
+        original_data["rr_low"] = low_preds
 
         final_metric_linear = final_metric(spearman_low, spearman_high)
 
@@ -305,8 +305,8 @@ if __name__ == "__main__":
         print(spearman_low, spearman_high)
         final_metric_tree = final_metric(spearman_low, spearman_high)
 
-        original_data['lgbm_high'] = high_preds
-        original_data['lgbm_low'] = low_preds
+        original_data["lgbm_high"] = high_preds
+        original_data["lgbm_low"] = low_preds
 
         print(
             "LightGBM Regressor: Final Leaderboard Score- Public - Test Set is "
@@ -319,5 +319,4 @@ if __name__ == "__main__":
     high_df.to_csv("data/submissions/high_df.csv")
     low_df.to_csv("data/submissions/low_df.csv")
 
-
-    original_data.to_csv('data/error_analysis/preds.csv', index=False)
+    original_data.to_csv("data/error_analysis/preds.csv", index=False)
