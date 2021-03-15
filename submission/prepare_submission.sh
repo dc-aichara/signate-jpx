@@ -9,7 +9,7 @@ cp -fr ../models/lgb_label_low_20.txt  ./model
 cp -fr ../data/raw ./data
 
 # Copy Configuration 
-cp -fr ../config.yml .
+cp -fr ../config.yml ./src
 
 # Copy Pre-Proc Objects/Metadata
 cp -fr ../models/ordenc.pkl ./model

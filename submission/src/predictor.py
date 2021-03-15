@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
 import pickle
-
 import pandas as pd
 import lightgbm as lgb
 from utils import (
@@ -21,7 +20,7 @@ class ScoringService(object):
     TARGET_LABELS = ["label_high_20", "label_low_20"]
     start_dt = "2020-01-01"
 
-    with open("../config.yml", "r") as f:
+    with open("config.yml", "r") as f:
         doc = yaml.load(f, yaml.Loader)
 
     config = doc["baseline_model"]
