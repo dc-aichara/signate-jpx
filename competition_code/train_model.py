@@ -174,6 +174,7 @@ if __name__ == "__main__":
         y_test_high.shape,
         y_test_low.shape,
     )
+    original_data = pd.read_csv("data/interim/test_data.csv")
     # Ridge Regression
     if config["ridge_regression"]:
         train_linear = pd.read_csv("data/processed/train_linear.csv").fillna(0)
@@ -206,7 +207,6 @@ if __name__ == "__main__":
         spearman_high = spearmanr(y_test_high, high_preds)[0]
         spearman_low = spearmanr(y_test_low, low_preds)[0]
 
-        original_data = pd.read_csv("data/interim/test_data.csv")
         original_data["rr_high"] = high_preds
         original_data["rr_low"] = low_preds
 
