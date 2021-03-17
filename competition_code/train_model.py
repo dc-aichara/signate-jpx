@@ -18,11 +18,14 @@ def final_metric(low_corr, high_corr):
 
 def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
     lgb_train = lgb.Dataset(data=X_train, label=y_train)
-    lgb_valid = lgb.Dataset(data=X_valid, label=y_valid)
+    valid_sets = [lgb_train]
+    if isinstance(X_valid, pd.DataFrame):
+        lgb_valid = lgb.Dataset(data=X_valid, label=y_valid)
+        valid_sets = [lgb_train, lgb_valid]
     model = lgb.train(
         param,
         lgb_train,
-        valid_sets=[lgb_train, lgb_valid],
+        valid_sets=valid_sets,
         verbose_eval=10,
         feval=lgb_spearmanr,
         # categorical_feature=cat_feats
@@ -252,6 +255,19 @@ if __name__ == "__main__":
                 y_train_high,
                 y_test_high,
             )
+        elif config.get("train_with_all_data"):
+            (X_train_low, X_valid_low, y_train_low, y_valid_low,) = (
+                train_tree,
+                None,
+                y_train_low,
+                None,
+            )
+            (X_train_high, X_valid_high, y_train_high, y_valid_high,) = (
+                train_tree,
+                None,
+                y_train_high,
+                None,
+            )
         else:
             (
                 X_train_low,
@@ -272,9 +288,7 @@ if __name__ == "__main__":
 
         print(
             X_train_low.shape,
-            X_valid_low.shape,
             y_train_low.shape,
-            y_valid_low.shape,
         )
         model_low = train_single_lgb(
             X_train_low,
@@ -284,6 +298,7 @@ if __name__ == "__main__":
             params,
             "models/lgb_label_low_20",
         )
+        # params["num_iterations"] = 200
         model_high = train_single_lgb(
             X_train_high,
             X_valid_high,

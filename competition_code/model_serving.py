@@ -47,7 +47,7 @@ if __name__ == "__main__":
         # Evaluate LightGBM
         spearman_high = spearmanr(y_test_high["label_high_20"], high_preds)[0]
         spearman_low = spearmanr(y_test_low["label_low_20"], low_preds)[0]
-        print(spearman_high, spearman_low)
+        print(spearman_low, spearman_high)
         final_metric = final_metric(spearman_low, spearman_high)
 
         print(

@@ -95,23 +95,16 @@ if __name__ == "__main__":
 
     # Generic Steps
     train = pd.read_csv("data/interim/train_data.csv")
+    print("Train shape: ", train.shape)
     test = pd.read_csv("data/interim/test_data.csv")
-    print(train.shape, test.shape)
+    print("Test shape: ", test.shape)
 
-    # Get simple Technical features
+    # Technical features for train data
     train_feat1 = get_technical_features(
         train, periods=[10, 20, 30], extra_feats=True
     )
-    test_feat1 = get_technical_features(
-        test, periods=[10, 20, 30], extra_feats=True
-    )
-    print(train_feat1.columns)
-
     train = pd.merge(
         train, train_feat1, on=["base_date", "Local Code"], how="left"
-    )
-    test = pd.merge(
-        test, test_feat1, on=["base_date", "Local Code"], how="left"
     )
     linear_model_data_config.update(
         {col: "numeric" for col in train_feat1.columns[2:]}
@@ -119,25 +112,57 @@ if __name__ == "__main__":
     tree_model_data_config.update(
         {col: "numeric" for col in train_feat1.columns[2:]}
     )
-    del train_feat1, test_feat1
+    del train_feat1
+
     train_feat2 = get_technical_features(train, periods=[14, 28, 42])
-    test_feat2 = get_technical_features(test, periods=[14, 28, 42])
 
     train = pd.merge(
         train, train_feat2, on=["base_date", "Local Code"], how="left"
     )
-    test = pd.merge(
-        test, test_feat2, on=["base_date", "Local Code"], how="left"
-    )
-
     linear_model_data_config.update(
         {col: "numeric" for col in train_feat2.columns[2:]}
     )
     tree_model_data_config.update(
         {col: "numeric" for col in train_feat2.columns[2:]}
     )
-    del train_feat2, test_feat2
-    print(train.shape, test.shape)
+    del train_feat2
+    # New feats
+    train["change_pct"] = (
+        (train["EndOfDayQuote High"] - train["EndOfDayQuote Low"])
+        * 100
+        / (train["EndOfDayQuote Close"])
+    )
+    train["change"] = train["EndOfDayQuote Open"] - train["EndOfDayQuote Close"]
+    linear_model_data_config.update(
+        {"change_pct": "numeric", "change": "numeric"}
+    )
+    tree_model_data_config.update(
+        {"change_pct": "numeric", "change": "numeric"}
+    )
+
+    # Technical features for test data
+    test_feat1 = get_technical_features(
+        test, periods=[10, 20, 30], extra_feats=True
+    )
+    test = pd.merge(
+        test, test_feat1, on=["base_date", "Local Code"], how="left"
+    )
+    del test_feat1
+
+    test_feat2 = get_technical_features(test, periods=[14, 28, 42])
+    test = pd.merge(
+        test, test_feat2, on=["base_date", "Local Code"], how="left"
+    )
+    del test_feat2
+
+    test["change_pct"] = (
+        (test["EndOfDayQuote High"] - test["EndOfDayQuote Low"])
+        * 100
+        / (test["EndOfDayQuote Close"])
+    )
+    test["change"] = test["EndOfDayQuote Open"] - test["EndOfDayQuote Close"]
+    test.reset_index(drop=True, inplace=True)
+    print("Test shape: ", test.shape)
     drop_data = config.get("drop_data")
     if drop_data:
         drop_data_train_date = config.get("drop_data_train_date")
@@ -263,6 +288,7 @@ if __name__ == "__main__":
     )
 
     train_trees.to_csv("data/processed/train_trees.csv", index=False)
+    cols = train_trees.columns.tolist()
     del train_trees
     if config.get("test_model") == "public":
         # Only for our own evaluation purposes
@@ -301,22 +327,22 @@ if __name__ == "__main__":
         print("Test tree data shape", test_trees.shape)
         test_trees.to_csv("data/processed/test_trees.csv", index=False)
 
-        # Save Model Objects
-        scaler_output = open("models/scaler.pkl", "wb")
-        pickle.dump(scaler, scaler_output)
+    # Save Model Objects
+    scaler_output = open("models/scaler.pkl", "wb")
+    pickle.dump(scaler, scaler_output)
 
-        ordenc_output = open("models/ordenc.pkl", "wb")
-        pickle.dump(ordenc, ordenc_output)
+    ordenc_output = open("models/ordenc.pkl", "wb")
+    pickle.dump(ordenc, ordenc_output)
 
-        # Create Metadata for serving
-        metadata = {
-            "categorical": categoricals_tree,
-            "dates": dates_tree,
-            "numeric": numerics_tree,
-            "col_order": test_trees.columns.to_list(),
-        }
+    # Create Metadata for serving
+    metadata = {
+        "categorical": categoricals_tree,
+        "dates": dates_tree,
+        "numeric": numerics_tree,
+        "col_order": cols,
+    }
 
-        print(metadata)
+    print(metadata)
 
-        with open("models/metadata.json", "w") as fp:
-            json.dump(metadata, fp, indent=2)
+    with open("models/metadata.json", "w") as fp:
+        json.dump(metadata, fp, indent=2)

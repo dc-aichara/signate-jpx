@@ -131,11 +131,19 @@ class ScoringService(object):
         feats = pd.merge(
             feats, tech_feat1, on=["base_date", "Local Code"], how="left"
         )
-
+        del tech_feat1
         tech_feat2 = get_technical_features(feats, periods=[14, 28, 42])
         feats = pd.merge(
             feats, tech_feat2, on=["base_date", "Local Code"], how="left"
         )
+        del tech_feat2
+        feats["change_pct"] = (
+                (feats["EndOfDayQuote High"] - feats["EndOfDayQuote Low"])
+                * 100
+                / (feats["EndOfDayQuote Close"])
+        )
+        feats["change"] = feats["EndOfDayQuote Open"] - feats[
+            "EndOfDayQuote Close"]
 
         feats.reset_index(drop=True, inplace=True)
 
