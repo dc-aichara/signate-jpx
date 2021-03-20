@@ -19,20 +19,21 @@ baseline_model:
   cross_validation: True
   lgb_model: True
   use_test_as_validation: False
+  train_with_all_data: False
   seed: 227
   lgb_params: {
       "application": "fair",
-      "num_iterations": 300,
+      "num_iterations": 250,
       "learning_rate": 0.1,
       "early_stopping_round": 10,
       "feature_fraction": 0.8,
       "bagging_fraction": 0.9,
       "subsample_freq": 1,
-      #"min_data_in_leaf": 4096,
+      "min_data_in_leaf": 4096,
       "metric": "lgb_spearmanr",
-      #"num_leaves": 2048,
-      #"reg_alpha": 0.3899,
-      #"reg_lambda": 0.648,
+      "num_leaves": 2048,
+      "reg_alpha": 0.3899,
+      "reg_lambda": 0.648,
       "verbose": -1,
       "device_type": 'cpu'
     }
