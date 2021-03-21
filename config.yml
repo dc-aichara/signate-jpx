@@ -4,7 +4,7 @@
 ## if low_memory_mode is true - will run pipeline with only 10000 rows for functionality testing purposes. 
 
 baseline_model:
-  test_model: public
+  test_model: private
   random_seed: 255
   low_memory_mode: False
   use_fin_data: False
@@ -18,12 +18,12 @@ baseline_model:
   alpha: 1.0
   cross_validation: False
   lgb_model: True
-  use_test_as_validation: True
-  train_with_all_data: False
+  use_test_as_validation: False
+  train_with_all_data: True
   seed: 227
   lgb_params: {
       "application": "fair",
-      "num_iterations": 250,
+      "num_iterations": 110,
       "learning_rate": 0.1,
       "early_stopping_round": 10,
       "feature_fraction": 1.0,
