@@ -142,6 +142,7 @@ class ScoringService(object):
                 * 100
                 / (feats["EndOfDayQuote Close"])
         )
+        feats["change_pct"] = feats["change_pct"].fillna(0)
         feats["change"] = feats["EndOfDayQuote Open"] - feats[
             "EndOfDayQuote Close"]
 
