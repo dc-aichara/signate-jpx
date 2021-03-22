@@ -1,15 +1,15 @@
 from datetime import datetime
 
 t1 = datetime.now()
-DATASET_DIR = "../data/raw"
+DATASET_DIR = "../data"
 
 from predictor import ScoringService
 
 # Gets original datasets
 inputs = ScoringService.get_inputs(DATASET_DIR)
-assert inputs == {'stock_list': '../data/raw/stock_list.csv.gz',
-                  'stock_price': '../data/raw/stock_price.csv.gz',
-                  'stock_labels': '../data/raw/stock_labels.csv.gz'}
+assert inputs == {'stock_list': '../data/stock_list.csv.gz',
+                  'stock_price': '../data/stock_price.csv.gz',
+                  'stock_labels': '../data/stock_labels.csv.gz'}
 
 # Reads Dataframes into CSVs
 datasets = ScoringService.get_dataset(inputs)

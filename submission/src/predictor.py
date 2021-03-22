@@ -2,6 +2,7 @@
 import io
 import pickle
 import pandas as pd
+import numpy as np
 import lightgbm as lgb
 from utils import (
     format_dates,
@@ -13,7 +14,7 @@ from utils import (
 )
 import yaml
 import json
-
+from pytorch_tabnet.tab_model import TabNetRegressor
 
 class ScoringService(object):
     # 目的変数
@@ -34,7 +35,8 @@ class ScoringService(object):
     # データをこの変数に読み込む
     dfs = None
     # モデルをこの変数に読み込む
-    models = None
+    lgbm_models = None
+    tabnet_models = None
     # 対象の銘柄コードをこの変数に読み込む
     codes = None
 
@@ -145,6 +147,9 @@ class ScoringService(object):
         feats["change"] = feats["EndOfDayQuote Open"] - feats[
             "EndOfDayQuote Close"]
 
+        feats["change_pct"] = feats["change_pct"].fillna(0)
+        feats["change"] = feats["change"].fillna(0)
+
         feats.reset_index(drop=True, inplace=True)
 
         # Numeric Encoding
@@ -187,15 +192,25 @@ class ScoringService(object):
         Returns:
             bool: The return value. True for success, False otherwise.
         """
-        if cls.models is None:
-            cls.models = {}
+        #if cls.models is None:
+        #    cls.models = {}
+        cls.lgbm_models = {}
+        cls.tabnet_models = {}
+
         if labels is None:
             labels = cls.TARGET_LABELS
         for label in labels:
             print(f"{model_path}/lgb_{label}.txt")
-            cls.models[label] = lgb.Booster(
+            cls.lgbm_models[label] = lgb.Booster(
                 model_file=f"{model_path}/lgb_{label}.txt"
             )
+            #with open(f"{model_path}/tabnet_{label}.pkl","wb") as model_file:
+            loaded_tabnet = None
+            loaded_tabnet = TabNetRegressor()
+            print(f"{model_path}/tabnet_{label}.zip")
+            loaded_tabnet.load_model(f"{model_path}/tabnet_{label}.zip")
+            cls.tabnet_models[label] = loaded_tabnet
+    
         return True
 
     @classmethod
@@ -242,8 +257,12 @@ class ScoringService(object):
 
         # 目的変数毎に予測
         for label in labels:
-            df[label] = cls.models[label].predict(feats)
+            lgbm_preds = cls.lgbm_models[label].predict(feats).reshape(-1, 1)
+            tabnet_preds = cls.tabnet_models[label].predict(feats.fillna(0).to_numpy()).reshape(-1, 1)
 
+
+            df[label] = (lgbm_preds + tabnet_preds) / 2 
+ 
             output_columns.append(label)
 
         out = io.StringIO()

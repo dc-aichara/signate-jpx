@@ -9,6 +9,17 @@ import lightgbm as lgb
 from scipy.stats import spearmanr
 import numpy as np
 
+# TabNet
+from pytorch_tabnet.tab_model import TabNetRegressor
+import torch
+from pytorch_tabnet.metrics import Metric
+import os 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+import pickle
+
 
 def final_metric(low_corr, high_corr):
     # Metric as defined on the page
@@ -222,9 +233,107 @@ if __name__ == "__main__":
         print(spearman_low, spearman_high)
         print(final_metric_linear)
 
+    if config['tab_net']:
+
+        valid_with_test = config.get("use_test_as_validation")  
+
+        train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
+        test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
+
+        if valid_with_test:
+            print("Using Test data a validation data!!!")
+            X_train_tn_low, X_valid_tn_low, y_train_tn_low, y_valid_tn_low = (
+                train_tree,
+                test_tree,
+                y_train_low,
+                y_test_low,
+            )
+            X_train_tn_high, X_valid_tn_high, y_train_tn_high, y_valid_tn_high = (
+                train_tree,
+                test_tree,
+                y_train_high,
+                y_test_high,
+            )
+        elif config.get("train_with_all_data"):
+            X_train_tn_low, X_valid_tn_low, y_train_tn_low, y_valid_tn_low = train_test_split(train_tree, y_train_low, test_size=0.2, shuffle=False)
+            X_train_tn_high, X_valid_tn_high, y_train_tn_high, y_valid_tn_high = train_test_split(train_tree, y_train_high, test_size=0.2, shuffle=False)
+
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = True
+            print("working on gpu")
+
+        class spearman(Metric):
+            def __init__(self):
+                self._name = "spearman"
+                self._maximize = True
+
+            def __call__(self, y_true, y_pred):
+                corr = spearmanr(y_true, y_pred)[0]
+                return corr
+
+        # Model Params 
+        tabnet_params = dict(n_d = 32,
+                             n_a = 32,
+                             n_steps = 5,
+                             gamma = 1.3,
+                             lambda_sparse = 0,
+                             optimizer_fn = optim.Adam,
+                             optimizer_params = dict(lr = .1, weight_decay = 1e-5),
+                             mask_type = "entmax",
+                             scheduler_params = dict(mode = "min", patience = 5, min_lr = 1e-5, factor = 0.9),
+                             scheduler_fn = ReduceLROnPlateau,
+                             seed = 42,
+                             verbose = 1)
+
+        tabnet_model_low = TabNetRegressor(**tabnet_params, device_name='auto')
+
+        tabnet_model_low.fit(X_train_tn_low.to_numpy(), 
+                             y_train_tn_low.to_numpy(), 
+                             eval_set=[(X_valid_tn_low.to_numpy(), y_valid_tn_low.to_numpy())],
+                             eval_metric=[spearman],
+                             patience=20,
+                             batch_size=int(32768*2), 
+                             virtual_batch_size=int(4096*2),
+                             num_workers=4,
+                             max_epochs=500,
+                             drop_last=False)
+        tabnet_low_preds = tabnet_model_low.predict(test_tree.to_numpy())
+        
+        tabnet_model_high = TabNetRegressor(**tabnet_params, device_name='auto')
+        tabnet_model_high.fit(X_train_tn_high.to_numpy(),
+                              y_train_tn_high.to_numpy(), 
+                              eval_set=[(X_valid_tn_high.to_numpy(), y_valid_tn_high.to_numpy())],
+                              eval_metric=[spearman],
+                              patience=20,
+                              batch_size=int(32768*2), 
+                              virtual_batch_size=int(4096*2),
+                              num_workers=4,
+                              max_epochs=500,
+                              drop_last=False)
+        tabnet_high_preds = tabnet_model_high.predict(test_tree.to_numpy())
+
+        # Evaluate LightGBM
+        spearman_tn_high = spearmanr(y_test_high, tabnet_high_preds)[0]
+        spearman_tn_low = spearmanr(y_test_low, tabnet_low_preds)[0]
+        print(spearman_tn_low, spearman_tn_high)
+        final_metric_tabnet = final_metric(spearman_tn_low, spearman_tn_high)
+
+        original_data['tabnet_high'] = tabnet_high_preds
+        original_data['tabnet_low'] = tabnet_low_preds
+
+        print('Tab Net')
+        print(final_metric_tabnet)
+
+        tabnet_model_low.save_model("models/tabnet_label_low_20")
+        tabnet_model_high.save_model("models/tabnet_label_high_20")
+
     if config["lgb_model"]:
         train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
         test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
+
+        
         print(train_tree.shape, test_tree.shape)
         params = config["lgb_params"]
         seed = config["seed"]

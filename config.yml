@@ -15,10 +15,11 @@ baseline_model:
   drop_data_train_date: "2016-02-01"
   drop_data_test_date: "2020-01-01"
   ridge_regression: False
+  tab_net: True
   alpha: 1.0
-  cross_validation: True
+  cross_validation: False
   lgb_model: True
-  use_test_as_validation: False
+  use_test_as_validation: True
   train_with_all_data: False
   seed: 227
   lgb_params: {
@@ -26,12 +27,12 @@ baseline_model:
       "num_iterations": 250,
       "learning_rate": 0.1,
       "early_stopping_round": 10,
-      "feature_fraction": 0.8,
+      "feature_fraction": 1.0,
       "bagging_fraction": 0.9,
       "subsample_freq": 1,
-      "min_data_in_leaf": 4096,
+      "min_data_in_leaf": 1016,
       "metric": "lgb_spearmanr",
-      "num_leaves": 2048,
+      "num_leaves": 1016,
       "reg_alpha": 0.3899,
       "reg_lambda": 0.648,
       "verbose": -1,

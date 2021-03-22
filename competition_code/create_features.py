@@ -133,6 +133,11 @@ if __name__ == "__main__":
         / (train["EndOfDayQuote Close"])
     )
     train["change"] = train["EndOfDayQuote Open"] - train["EndOfDayQuote Close"]
+
+    train["change_pct"] = train["change_pct"].fillna(0)
+    train["change"] = train["change"].fillna(0)
+
+
     linear_model_data_config.update(
         {"change_pct": "numeric", "change": "numeric"}
     )
@@ -161,6 +166,10 @@ if __name__ == "__main__":
         / (test["EndOfDayQuote Close"])
     )
     test["change"] = test["EndOfDayQuote Open"] - test["EndOfDayQuote Close"]
+
+    test["change_pct"] = test["change_pct"].fillna(0)
+    test["change"] = test["change"].fillna(0)
+
     test.reset_index(drop=True, inplace=True)
     print("Test shape: ", test.shape)
     drop_data = config.get("drop_data")

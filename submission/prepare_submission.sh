@@ -5,6 +5,10 @@ cp -fr ../competition_code/utils ./src
 cp -fr ../models/lgb_label_high_20.txt  ./model
 cp -fr ../models/lgb_label_low_20.txt  ./model
 
+# Copy Trained Tabnet Models 
+cp -fr ../models/tabnet_label_high_20.zip  ./model
+cp -fr ../models/tabnet_label_low_20.zip  ./model
+
 # Automatically Copy Data to directory 
 cp -fr ../data/raw ./data
 
