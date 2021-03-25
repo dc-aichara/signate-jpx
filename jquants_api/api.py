@@ -182,7 +182,7 @@ def get_prices(start_date: str, end_date: str, id_token: str) -> pd.DataFrame:
         print(date)
         param_dict = {"date": date, "include_details": "true"}
         out = call_jquants_api(param_dict, id_token, "prices")
-        if len(out["labels"]) > 0:
+        if len(out["prices"]) > 0:
             df = df.append(pd.DataFrame(out["prices"]))
 
     df = df[

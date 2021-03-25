@@ -298,7 +298,7 @@ if __name__ == "__main__":
             params,
             "models/lgb_label_low_20",
         )
-        # params["num_iterations"] = 200
+        params["num_iterations"] = 100
         model_high = train_single_lgb(
             X_train_high,
             X_valid_high,
