@@ -27,16 +27,12 @@ if __name__ == "__main__":
     config = load_config(config_id)
     y_test_high = pd.read_csv("data/processed/y_test_high.csv")
     y_test_low = pd.read_csv("data/processed/y_test_low.csv")
-    y_test_high = pd.read_csv("data/processed/y_train_high.csv")[-856089:]
-    y_test_low = pd.read_csv("data/processed/y_train_low.csv")[-856089:]
     y_test_high.fillna(method="ffill", inplace=True)
     y_test_low.fillna(method="ffill", inplace=True)
 
     if config["lgb_model"]:
         print("Making predictions with LighGBMs!!!!!")
-        train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
-        test_tree = train_tree[-856089:].reset_index(drop=True)
-        # test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
+        test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
         print(test_tree.shape, y_test_high.shape)
         model_low = lgb.Booster(model_file="models/lgb_label_low_20.txt")
         model_high = lgb.Booster(model_file="models/lgb_label_high_20.txt")

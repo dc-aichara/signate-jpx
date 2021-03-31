@@ -37,8 +37,9 @@ if __name__ == "__main__":
     stock_price.rename(
         columns={"EndOfDayQuote Date": "base_date"}, inplace=True
     )
-    # Drop 2021 data
-    stock_price = stock_price[stock_price["base_date"] < "2021-01-01"]
+    # Drop data by date limit
+    data_date_limit = config.get("data_date_limit", "2021-01-01")
+    stock_price = stock_price[stock_price["base_date"] < data_date_limit]
     # drop columns with greater than 20% null values
     stock_fin.drop(
         stock_fin.isnull()
@@ -67,8 +68,6 @@ if __name__ == "__main__":
     print(stock_price.shape)
     if config.get("test_model") == "public":
         print("Removing Data as model will only be used on test_data set")
-        # train = stock_labels[stock_labels["base_date"] < "2020-01-01"]
-        # test = stock_labels[stock_labels["base_date"] >= "2020-02-01"]
         train = stock_price[stock_price["base_date"] < train_split_date]
         test = stock_price[stock_price["base_date"] >= test_split_date]
         test.reset_index(drop=True, inplace=True)
