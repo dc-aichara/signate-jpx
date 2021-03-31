@@ -1,8 +1,6 @@
 import argparse
 import pandas as pd
 from utils import load_config
-from utils import time_series_CV
-from utils import reduce_mem_usage
 from utils import load_data
 from utils import format_dates
 from datetime import datetime
@@ -32,10 +30,6 @@ if __name__ == "__main__":
         stock_labels,
     ) = load_data()
     time2 = datetime.now()
-    # stock_price = reduce_mem_usage(stock_price)
-    # stock_fin = reduce_mem_usage(stock_fin)
-    # stock_list = reduce_mem_usage(stock_list)
-    # stock_labels = reduce_mem_usage(stock_labels)
 
     # Fix all Date Formats
     stock_price = format_dates(stock_price, ["EndOfDayQuote Date"])
@@ -43,7 +37,9 @@ if __name__ == "__main__":
     stock_price.rename(
         columns={"EndOfDayQuote Date": "base_date"}, inplace=True
     )
-
+    # Drop data by date limit
+    data_date_limit = config.get("data_date_limit", "2021-01-01")
+    stock_price = stock_price[stock_price["base_date"] < data_date_limit]
     # drop columns with greater than 20% null values
     stock_fin.drop(
         stock_fin.isnull()
@@ -69,18 +65,16 @@ if __name__ == "__main__":
         ["base_date", "label_date_5", "label_date_10", "label_date_20"],
     )
 
-    print(stock_labels.shape)
+    print(stock_price.shape)
     if config.get("test_model") == "public":
         print("Removing Data as model will only be used on test_data set")
-        # train = stock_labels[stock_labels["base_date"] < "2020-01-01"]
-        # test = stock_labels[stock_labels["base_date"] >= "2020-02-01"]
-        train = stock_labels[stock_labels["base_date"] < train_split_date]
-        test = stock_labels[stock_labels["base_date"] >= test_split_date]
+        train = stock_price[stock_price["base_date"] < train_split_date]
+        test = stock_price[stock_price["base_date"] >= test_split_date]
         test.reset_index(drop=True, inplace=True)
         print(train.shape, test.shape)
 
     else:
-        train = stock_labels
+        train = stock_price
 
     if config.get("low_memory_mode") is True:
         train = train[0:10000]
@@ -93,7 +87,7 @@ if __name__ == "__main__":
 
     train = pd.merge(
         train,
-        stock_price,
+        stock_labels,
         on=["base_date", "Local Code"],
         how="left",
     )
@@ -110,7 +104,7 @@ if __name__ == "__main__":
 
         test = pd.merge(
             test,
-            stock_price,
+            stock_labels,
             on=["base_date", "Local Code"],
             how="left",
         )
@@ -123,9 +117,13 @@ if __name__ == "__main__":
     print(f"Data merging time {time3 - time2}")
     print(train.isnull().sum() / len(train) * 100)
     # Begin combining data and stuff.
+    train["33 Sector(Code)"] = train["33 Sector(Code)"].astype(int)
+    train["17 Sector(Code)"] = train["17 Sector(Code)"].astype(int)
     train.to_csv("data/interim/train_data.csv", index=False)
 
     if config.get("test_model") == "public":
+        test["33 Sector(Code)"] = test["33 Sector(Code)"].astype(int)
+        test["17 Sector(Code)"] = test["17 Sector(Code)"].astype(int)
         test.to_csv("data/interim/test_data.csv", index=False)
         print(test.shape)
         print(test.head())

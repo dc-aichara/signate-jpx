@@ -108,18 +108,20 @@ class ScoringService(object):
         )
 
         # Filter Dates
-        stock_price = stock_price[stock_price["base_date"] >= cls.start_dt]
-        stock_labels = stock_labels[stock_labels["base_date"] >= cls.start_dt]
+        # stock_price = stock_price[stock_price["base_date"] >= cls.start_dt]
+        # stock_labels = stock_labels[stock_labels["base_date"] >= cls.start_dt]
 
         feats = pd.merge(
-            stock_labels, stock_list, on=["Local Code"], how="left"
+            stock_price, stock_list, on=["Local Code"], how="left"
         )
 
         feats = feats[feats["prediction_target"] == True]
 
-        feats = pd.merge(
-            feats, stock_price, on=["base_date", "Local Code"], how="left"
-        )
+        # feats = pd.merge(
+        #     feats, stock_labels, on=["base_date", "Local Code"], how="left"
+        # )
+        feats["33 Sector(Code)"] = feats["33 Sector(Code)"].astype(int)
+        feats["17 Sector(Code)"] = feats["17 Sector(Code)"].astype(int)
 
         feats.reset_index(inplace=True, drop=True)
 
