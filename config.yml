@@ -8,7 +8,7 @@ baseline_model:
   random_seed: 255
   low_memory_mode: False
   use_fin_data: False
-  data_date_limit: "2021-01-01
+  data_date_limit: "2021-01-01"
   train_split_date: "2020-01-01"
   test_split_date: "2020-01-01"
   # If we want to drop data from train and test --> Avoid Data leak -> drop 2 months data
