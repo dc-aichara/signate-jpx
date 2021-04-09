@@ -1,8 +1,7 @@
 import argparse
-from utils import load_config, lgb_spearmanr, time_series_CV
+from utils import load_config, lgb_spearmanr, final_metric
 import pandas as pd
 from sklearn import linear_model
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
 import lightgbm as lgb
@@ -298,7 +297,7 @@ if __name__ == "__main__":
             params,
             "models/lgb_label_low_20",
         )
-        params["num_iterations"] = 100
+        params["num_iterations"] = 50
         model_high = train_single_lgb(
             X_train_high,
             X_valid_high,

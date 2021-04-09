@@ -5,8 +5,6 @@ from sklearn.model_selection import TimeSeriesSplit
 from scipy.stats import spearmanr
 from PriceIndices import Indices
 import sklearn
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
-from sklearn.preprocessing import MinMaxScaler
 
 
 def load_data(data_dir: str = "data/raw/"):
@@ -293,3 +291,9 @@ def get_technical_features(
     feats = pd.concat(datas, ignore_index=True)
     del datas, data
     return feats
+
+
+def final_metric(low_corr, high_corr):
+    # Metric as defined on the page
+    # https://signate.jp/competitions/423#evaluation
+    return (low_corr - 1) ** 2 + (high_corr - 1) ** 2

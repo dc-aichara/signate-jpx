@@ -24,7 +24,7 @@ baseline_model:
   seed: 227
   lgb_params: {
       "application": "fair",
-      "num_iterations": 130,
+      "num_iterations": 100,
       "learning_rate": 0.1,
       "early_stopping_round": 10,
       "feature_fraction": 1.0,

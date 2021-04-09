@@ -4,13 +4,7 @@ import lightgbm as lgb
 from scipy.stats import spearmanr
 from datetime import datetime
 import pandas as pd
-
-
-def final_metric(low_corr, high_corr):
-    # Metric as defined on the page
-    # https://signate.jp/competitions/423#evaluation
-    return (low_corr - 1) ** 2 + (high_corr - 1) ** 2
-
+from utils import final_metric
 
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
@@ -27,12 +21,16 @@ if __name__ == "__main__":
     config = load_config(config_id)
     y_test_high = pd.read_csv("data/processed/y_test_high.csv")
     y_test_low = pd.read_csv("data/processed/y_test_low.csv")
+    # y_test_high = pd.read_csv("data/processed/y_train_high.csv")[-426541:]
+    # y_test_low = pd.read_csv("data/processed/y_train_low.csv")[-426541:]
     y_test_high.fillna(method="ffill", inplace=True)
     y_test_low.fillna(method="ffill", inplace=True)
 
     if config["lgb_model"]:
         print("Making predictions with LighGBMs!!!!!")
         test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
+        train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
+        # test_tree = train_tree[-426541:].reset_index(drop=True)
         print(test_tree.shape, y_test_high.shape)
         model_low = lgb.Booster(model_file="models/lgb_label_low_20.txt")
         model_high = lgb.Booster(model_file="models/lgb_label_high_20.txt")

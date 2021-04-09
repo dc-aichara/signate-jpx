@@ -13,4 +13,5 @@ from .utils import (
     auto_numeric,
     auto_dates,
     get_technical_features,
+    final_metric,
 )

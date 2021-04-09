@@ -1,8 +1,6 @@
 import argparse
 import pandas as pd
-from utils import load_config
-from utils import load_data
-from utils import format_dates
+from utils import load_config, load_data, format_dates
 from datetime import datetime
 
 
@@ -30,7 +28,13 @@ if __name__ == "__main__":
         stock_labels,
     ) = load_data()
     time2 = datetime.now()
-
+    stock_list["IssuedShareEquityQuote AccountingStandard"] = stock_list[
+        "IssuedShareEquityQuote AccountingStandard"
+    ].fillna(stock_list["IssuedShareEquityQuote AccountingStandard"].mode()[0])
+    stock_price = stock_price[
+        stock_price["EndOfDayQuote ExchangeOfficialClose"] != 0
+    ]
+    stock_price.reset_index(drop=True, inplace=True)
     # Fix all Date Formats
     stock_price = format_dates(stock_price, ["EndOfDayQuote Date"])
     stock_fin = format_dates(stock_fin, ["base_date"])
@@ -83,7 +87,8 @@ if __name__ == "__main__":
     train = pd.merge(train, stock_list, on=["Local Code"], how="left")
     print(train.shape)
 
-    train = train[train["prediction_target"] == True]
+    train = train[train["universe_comp2"] == True]
+    train.reset_index(drop=True, inplace=True)
 
     train = pd.merge(
         train,
@@ -100,7 +105,8 @@ if __name__ == "__main__":
 
     if config.get("test_model") == "public":
         test = pd.merge(test, stock_list, on=["Local Code"], how="left")
-        test = test[test["prediction_target"] == True]
+        test = test[test["universe_comp2"] == True]
+        test.reset_index(drop=True, inplace=True)
 
         test = pd.merge(
             test,
