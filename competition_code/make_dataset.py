@@ -1,8 +1,6 @@
 import argparse
 import pandas as pd
-from utils import load_config
-from utils import load_data
-from utils import format_dates
+from utils import load_config, load_data, format_dates
 from datetime import datetime
 
 
