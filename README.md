@@ -1,5 +1,5 @@
 # [Signate JPX](https://signate.jp/competitions/423)
-This repository contains the solution from team HODL from the Signate Tokyo Stock Exchange Fundamentals Modeling Competition. 
+This repository contains the solution for team HODL from the Signate Tokyo Stock Exchange Fundamentals Modeling Competition. 
 
 ## Setup Guide
  1. Create conda environment `signate_jpx` with `environment.yml` file.
@@ -11,19 +11,19 @@ This repository contains the solution from team HODL from the Signate Tokyo Stoc
     conda activate signate_jpx
     ```
 
-To update environment. 
- ```bash
- conda env update --file environment.yml --prune
- ```
-
  3. Add csv.gz files to data/raw folder 
 
- 4. To begin an end to end training ensure all data is in data/raw and run the following.
+ 4. To begin an end to end training ensure all data is in data/raw and run the following. Trained models should be outputted to the models folder. 
     
     ```bash
     sh start_pipeline.sh baseline_model 
     ```
 
+
+To update environment. 
+ ```bash
+ conda env update --file environment.yml --prune
+ ```
 
 ## config.yml parameters 
 The below contains a description of parameters in config.yml which guide the overall training pipeline. Depending on the setting of parameters, the behavior of the pipeline will change. 

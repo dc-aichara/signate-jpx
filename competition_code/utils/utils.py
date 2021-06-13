@@ -5,7 +5,7 @@ from scipy.stats import spearmanr
 from PriceIndices import Indices
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, MinMaxScaler
 from typing import Tuple, Optional, Union
-
+import lightgbm as lgb
 
 def load_data(
     data_dir: str = "data/raw/",
@@ -190,26 +190,47 @@ def date_feats(
     return data
 
 
-def lgb_spearmanr(preds, dtrain_data):
-    """
-    Spearman's rank correlation coefficient metrics for LightGBM
-    """
+def lgb_spearmanr(preds: np.ndarray, dtrain_data: lgb.basic.Dataset) -> float:
+    """Spearman's rank correlation coefficient metrics for LightGBM
+
+    Args:
+        preds (np.ndarray): array of predictions
+        dtrain_data (lgb.basic.Dataset): dataset
+
+    Returns:
+        float: spearman correlation score
+    """    
+
     labels = dtrain_data.get_label()
     corr = spearmanr(labels, preds)[0]
     return "lgb_corr", corr, True
 
 
-def lgb_r2_score(preds, dtrain_data):
-    """
-    R^2 metrics for LightGBM
-    """
+def lgb_r2_score(preds: np.ndarray, dtrain_data: lgb.basic.Dataset) -> float:
+    """R^2 metrics for LightGBM
+
+    Args:
+        preds (np.ndarray): array of predictions
+        dtrain_data (lgb.basic.Dataset): dataset
+
+    Returns:
+        float: R2 metrics
+    """    
     labels = dtrain_data.get_label()
     return "r2", r2_score(labels, preds), True
 
 
-def final_metric(low_corr, high_corr):
-    # Metric as defined on the page
-    # https://signate.jp/competitions/423#evaluation
+def final_metric(low_corr: float, high_corr: float) -> float:
+    """Metric as defined on the page
+       https://signate.jp/competitions/423#evaluation
+    
+    Args:
+        low_corr (float): low model spearman
+        high_corr (float): high model spearman
+
+    Returns:
+        float: final evaluation metric as defined on signate
+    """    
     return (low_corr - 1) ** 2 + (high_corr - 1) ** 2
 
 

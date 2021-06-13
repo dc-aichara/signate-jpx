@@ -8,7 +8,20 @@ from scipy.stats import spearmanr
 import numpy as np
 
 
-def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
+def train_single_lgb(X_train: pd.DataFrame, X_valid: pd.DataFrame, y_train: np.ndarray, y_valid: np.ndarray, param: dict, save_path: str) -> lgb.Booster:
+    """Trains LightGBM model
+
+    Args:
+        X_train (pd.DataFrame): X_train
+        X_valid (pd.DataFrame): X_valid
+        y_train (np.ndarray): y_train
+        y_valid (np.ndarray): y_valid
+        param (dict): model hyperparameters
+        save_path (str): path to save model
+
+    Returns:
+        lgb.Booster: Trained LightGBM model
+    """    
     lgb_train = lgb.Dataset(data=X_train, label=y_train)
     valid_sets = [lgb_train]
     if isinstance(X_valid, pd.DataFrame):
@@ -38,7 +51,17 @@ def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
     return model
 
 
-def cross_validation_lgbm(data, param, n_splits=5):
+def cross_validation_lgbm(data: pd.DataFrame, param: dict, n_splits:int = 5) -> list:
+    """Performs cross-validation for internal evaluation
+
+    Args:
+        data (pd.DataFrame): Full dataset
+        param (dict): LightGBM Hyperparameters
+        n_splits ([int], optional): Number of cv splits. Defaults to 5:int.
+
+    Returns:
+        list: A list of all CV scores for every split
+    """    
     lgbm_cv_scores = []
 
     folds = TimeSeriesSplit(n_splits=n_splits)
