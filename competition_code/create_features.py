@@ -8,7 +8,7 @@ from utils import (
     get_technical_features,
 )
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, MinMaxScaler
+from sklearn.preprocessing import OrdinalEncoder, MinMaxScaler
 import json
 import pickle
 
@@ -97,9 +97,6 @@ if __name__ == "__main__":
 
     if config.get("test_model") == "public":
         test = pd.read_csv("data/interim/test_data.csv")
-        test["Size Code (New Index Series)"] = test[
-            "Size Code (New Index Series)"
-        ].astype(str)
         print("Test shape: ", test.shape)
         # Technical features for test data
         test_feat1 = get_technical_features(

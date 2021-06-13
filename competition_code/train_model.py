@@ -123,6 +123,7 @@ if __name__ == "__main__":
     y_train_low.fillna(method="ffill", inplace=True)
 
     if config.get("test_model") == "public":
+        test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
         y_test_high = pd.read_csv("data/processed/y_test_high.csv")
         y_test_low = pd.read_csv("data/processed/y_test_low.csv")
         y_test_high.fillna(method="ffill", inplace=True)
@@ -131,8 +132,7 @@ if __name__ == "__main__":
 
     if config["lgb_model"]:
         train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
-        test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
-        print(train_tree.shape, test_tree.shape)
+        print(train_tree.shape)
         params = config["lgb_params"]
         seed = config["seed"]
         valid_with_test = config.get("use_test_as_validation")
