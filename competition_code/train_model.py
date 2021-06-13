@@ -39,42 +39,6 @@ def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
 
     return model
 
-
-def cross_validation_ridge(data, n_splits=5):
-    ridge_cv_scores = []
-
-    folds = TimeSeriesSplit(n_splits=n_splits)
-
-    for i, (train_index, test_index) in enumerate(folds.split(data)):
-        train_cv = data.iloc[train_index]
-        test_cv = data.iloc[test_index]
-
-        train_high_cv = y_train_high.iloc[train_index]
-        test_high_cv = y_train_high.iloc[test_index]
-
-        train_low_cv = y_train_low.iloc[train_index]
-        test_low_cv = y_train_low.iloc[test_index]
-
-        model_high = linear_model.Ridge(alpha=alpha)
-        model_high.fit(train_cv, train_high_cv)
-
-        model_low = linear_model.Ridge(alpha=alpha)
-        model_low.fit(train_cv, train_low_cv)
-
-        high_preds_cv = model_high.predict(test_cv)
-        low_preds_cv = model_low.predict(test_cv)
-
-        # Evaluate Ridge
-        spearman_high = spearmanr(test_high_cv, high_preds_cv)[0]
-        spearman_low = spearmanr(test_low_cv, low_preds_cv)[0]
-
-        metric_cv = final_metric(spearman_low, spearman_high)
-
-        ridge_cv_scores.append(metric_cv)
-
-    return ridge_cv_scores
-
-
 def cross_validation_lgbm(data, param, n_splits=5):
     lgbm_cv_scores = []
 
@@ -171,49 +135,6 @@ if __name__ == "__main__":
         y_test_low.shape,
     )
     original_data = pd.read_csv("data/interim/test_data.csv")
-    # Ridge Regression
-    if config["ridge_regression"]:
-        train_linear = pd.read_csv("data/processed/train_linear.csv").fillna(0)
-        test_linear = pd.read_csv("data/processed/test_linear.csv").fillna(0)
-        alpha = config["alpha"]
-        print(train_linear.shape, test_linear.shape)
-        if config["cross_validation"] is True:
-            print("Begin Ridge- Cross Validation")
-
-            ridge_cv_scores = cross_validation_ridge(train_linear, n_splits=5)
-
-            print("Ridge Cross Validation Results")
-            print(ridge_cv_scores)
-            print(np.mean(ridge_cv_scores))
-
-        print(f"Training  Ridge Regressor with Alpha = {alpha}!!!!!")
-        Ridge_high = linear_model.Ridge(alpha=alpha)
-        Ridge_low = linear_model.Ridge(alpha=alpha)
-
-        Ridge_high.fit(train_linear, y_train_high)
-        Ridge_low.fit(train_linear, y_train_low)
-
-        high_preds = Ridge_high.predict(test_linear)
-        low_preds = Ridge_low.predict(test_linear)
-
-        high_df = pd.concat([y_test_high, pd.DataFrame(high_preds)], axis=1)
-        low_df = pd.concat([y_test_low, pd.DataFrame(low_preds)], axis=1)
-
-        # Evaluate Ridge
-        spearman_high = spearmanr(y_test_high, high_preds)[0]
-        spearman_low = spearmanr(y_test_low, low_preds)[0]
-
-        original_data["rr_high"] = high_preds
-        original_data["rr_low"] = low_preds
-
-        final_metric_linear = final_metric(spearman_low, spearman_high)
-
-        print(
-            "Ridge Regressor: Final Leaderboard Score- Public - Test Set is "
-            "same as public leaderboard."
-        )
-        print(spearman_low, spearman_high)
-        print(final_metric_linear)
 
     if config["lgb_model"]:
         train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)

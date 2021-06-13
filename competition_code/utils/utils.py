@@ -5,9 +5,20 @@ from sklearn.model_selection import TimeSeriesSplit
 from scipy.stats import spearmanr
 from PriceIndices import Indices
 import sklearn
+from typing import Tuple, Iterator
 
 
-def load_data(data_dir: str = "data/raw/"):
+def load_data(data_dir: str = "data/raw/") -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Given a path to the data will load all datasets into pandas dataframes. 
+
+    Args:
+        data_dir (str, optional): Path to the input datasets where stock_labels, stock_fin, stock_list, and stock_price are located. Defaults to "data/raw/".
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]: stock_price df, stock_fin df, stock_list df, stock_labels df
+    """    
+
+    
     print(f"Loading data from {data_dir}")
     stock_labels = pd.read_csv(f"{data_dir}stock_labels.csv.gz")
     stock_fin = pd.read_csv(f"{data_dir}stock_fin.csv.gz")
@@ -17,7 +28,16 @@ def load_data(data_dir: str = "data/raw/"):
     return stock_price, stock_fin, stock_list, stock_labels
 
 
-def format_dates(df: pd.DataFrame, columns: list):
+def format_dates(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+    """Automatically formats all specified columns as date format "%Y-%m-%d"
+
+    Args:
+        df (pd.DataFrame): Original DataFrame of data
+        columns (list): List of columns that should be dates 
+
+    Returns:
+        pd.DataFrame: Returns original Dataframe with cleaned up dates. 
+    """    
 
     for column in columns:
         df[column] = pd.to_datetime(df[column]).dt.strftime("%Y-%m-%d")
@@ -25,7 +45,17 @@ def format_dates(df: pd.DataFrame, columns: list):
     return df
 
 
-def reduce_mem_usage(df, verbose=True):
+def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
+    """Function for reducing memory usage by downcasting of types
+       in dataframes. 
+
+    Args:
+        df (pd.DataFrame): DataFrame of Data
+        verbose (bool, optional): Whether to print results. Defaults to True.
+
+    Returns:
+        pd.DataFrame: Dataframe of data after type downcasting
+    """    
     numerics = ["int16", "int32", "int64", "float16", "float32", "float64"]
     start_mem = df.memory_usage().sum() / 1024 ** 2
     for col in df.columns:
@@ -78,26 +108,19 @@ def reduce_mem_usage(df, verbose=True):
 
 
 def load_config(config_id: str) -> dict:
+    """Reads Configuration from yaml file. 
+
+    Args:
+        config_id (str): specific configuration ID to use in yaml file
+
+    Returns:
+        dict: Returns dictionary of configuration parameters
+    """    
     with open("config.yml", "r") as f:
         doc = yaml.load(f, yaml.Loader)
 
     config = doc[config_id]
     return config
-
-
-def time_series_CV(data: pd.DataFrame, n_splits: int = 5):
-
-    folds = TimeSeriesSplit(n_splits=n_splits)
-
-    for i, (train_index, test_index) in enumerate(folds.split(data)):
-        train = data.iloc[train_index]
-        test = data.iloc[test_index]
-        print(f"FOLD- {i}")
-        print(f"Train Min-{train.index.min()}, Train Max- {train.index.max()}")
-        print(f"Test Min-{test.index.min()}, Train Max- {test.index.max()}")
-
-        yield train, test
-
 
 def calculate_price_indices(
     data: pd.DataFrame, date_col: str = "date", price_col: str = "price"

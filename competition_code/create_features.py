@@ -28,36 +28,6 @@ if __name__ == "__main__":
     print("Create Feature!!!!!")
     config = load_config(config_id)
 
-    # Probably will move this - Anything we want to keep
-    linear_model_data_config = {
-        "base_date": "date",
-        "Name (English)": "drop",
-        "Section/Products": "categorical",
-        "33 Sector(Code)": "categorical",
-        "33 Sector(name)": "drop",
-        "17 Sector(Code)": "categorical",
-        "17 Sector(name)": "drop",
-        "Size Code (New Index Series)": "categorical",
-        "Size (New Index Series)": "drop",
-        "IssuedShareEquityQuote AccountingStandard": "categorical",
-        "IssuedShareEquityQuote IssuedShare": "numeric",
-        # stock_price
-        "EndOfDayQuote Open": "numeric",
-        "EndOfDayQuote High": "numeric",
-        "EndOfDayQuote Low": "numeric",
-        "EndOfDayQuote Close": "numeric",
-        "EndOfDayQuote ExchangeOfficialClose": "numeric",
-        "EndOfDayQuote Volume": "numeric",
-        "EndOfDayQuote CumulativeAdjustmentFactor": "numeric",
-        "EndOfDayQuote PreviousClose": "numeric",
-        "EndOfDayQuote PreviousCloseDate": "drop",
-        "EndOfDayQuote PreviousExchangeOfficialClose": "numeric",
-        "EndOfDayQuote PreviousExchangeOfficialCloseDate": "drop",
-        "EndOfDayQuote ChangeFromPreviousClose": "numeric",
-        "EndOfDayQuote PercentChangeFromPreviousClose": "numeric",
-        "EndOfDayQuote VWAP": "numeric",
-    }
-
     tree_model_data_config = {
         "base_date": "date",
         "Name (English)": "drop",
@@ -97,9 +67,7 @@ if __name__ == "__main__":
     train = pd.merge(
         train, train_feat1, on=["base_date", "Local Code"], how="left"
     )
-    linear_model_data_config.update(
-        {col: "numeric" for col in train_feat1.columns[2:]}
-    )
+
     tree_model_data_config.update(
         {col: "numeric" for col in train_feat1.columns[2:]}
     )
@@ -110,9 +78,7 @@ if __name__ == "__main__":
     train = pd.merge(
         train, train_feat2, on=["base_date", "Local Code"], how="left"
     )
-    linear_model_data_config.update(
-        {col: "numeric" for col in train_feat2.columns[2:]}
-    )
+
     tree_model_data_config.update(
         {col: "numeric" for col in train_feat2.columns[2:]}
     )
@@ -125,9 +91,7 @@ if __name__ == "__main__":
     )
     train["change_pct"] = train["change_pct"].fillna(0)
     train["change"] = train["EndOfDayQuote Open"] - train["EndOfDayQuote Close"]
-    linear_model_data_config.update(
-        {"change_pct": "numeric", "change": "numeric"}
-    )
+
     tree_model_data_config.update(
         {"change_pct": "numeric", "change": "numeric"}
     )
@@ -199,7 +163,6 @@ if __name__ == "__main__":
             "Forecast_Dividend ReportType": "categorical",
             "Forecast_Dividend QuarterlyDividendPerShare": "numeric",
         }
-        linear_model_data_config.update(fin_cols_config)
         tree_model_data_config.update(fin_cols_config)
 
     # Split into X/y Train, X/Y test
@@ -225,49 +188,10 @@ if __name__ == "__main__":
     print("Saved Labels!!!")
 
     # Get preproc rules
-    (
-        numerics_linear,
-        dates_linear,
-        categoricals_linear,
-        drops_linear,
-    ) = get_data_rules(linear_model_data_config)
     numerics_tree, dates_tree, categoricals_tree, drops_tree = get_data_rules(
         tree_model_data_config
     )
 
-    # Linear
-    print("Begin Linear Processing")
-
-    # Dates
-    train_dates_df_linear = auto_dates(train, dates_linear)
-
-    # Numeric Features
-    scaler = MinMaxScaler()
-    scaler.fit(train[numerics_linear])
-
-    train_numerics_df_linear = auto_numeric(train, scaler, numerics_linear)
-
-    # Categorical Features
-    for category in categoricals_linear:
-        train[category] = train[category].fillna("no_category").astype(str)
-
-    ohe = OneHotEncoder(handle_unknown="ignore", sparse=False)
-    ohe.fit(train[categoricals_linear])
-    train_categoricals_df_linear = auto_categorical(
-        train, ohe, categoricals_linear
-    )
-
-    train_linear = pd.concat(
-        [
-            train_dates_df_linear,
-            train_categoricals_df_linear,
-            train_numerics_df_linear,
-        ],
-        axis=1,
-    )
-
-    train_linear.to_csv("data/processed/train_linear.csv", index=False)
-    del train_linear
     # Trees
     print("Begin Tree Processing")
 
@@ -293,24 +217,6 @@ if __name__ == "__main__":
     del train_trees
     if config.get("test_model") == "public":
         # Only for our own evaluation purposes
-
-        # Linear
-        test_dates_df_linear = auto_dates(test, dates_linear)
-        test_numerics_df_linear = auto_numeric(test, scaler, numerics_linear)
-        test_categoricals_df_linear = auto_categorical(
-            test, ohe, categoricals_linear
-        )
-        test_linear = pd.concat(
-            [
-                test_dates_df_linear,
-                test_categoricals_df_linear,
-                test_numerics_df_linear,
-            ],
-            axis=1,
-        )
-        print("Test linear data shape", test_linear.shape)
-        test_linear.to_csv("data/processed/test_linear.csv", index=False)
-
         # Trees
         test_dates_df_trees = auto_dates(test, dates_tree)
         test_numerics_df_trees = auto_numeric(test, scaler, numerics_tree)
