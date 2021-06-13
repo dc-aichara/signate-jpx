@@ -5,7 +5,8 @@ from sklearn.model_selection import TimeSeriesSplit
 from scipy.stats import spearmanr
 from PriceIndices import Indices
 import sklearn
-from typing import Tuple, Iterator
+from typing import Tuple, Iterator, Optional, Union
+from sklearn.preprocessing import MinMaxScaler
 
 
 def load_data(data_dir: str = "data/raw/") -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -209,7 +210,16 @@ def final_metric(low_corr, high_corr):
     return (low_corr - 1) ** 2 + (high_corr - 1) ** 2
 
 
-def get_data_rules(config: dict):
+def get_data_rules(config: dict) -> Tuple[list, list, list, list]:
+    """Uses date configuration to determine which columns are of numeric, date, categorical type as well as 
+       what should be dropped. 
+
+    Args:
+        config (dict): Data Configuration
+
+    Returns:
+        Tuple[list, list, list, list]: List of columns that are numeric, dates, categoricals, and should be dropped. 
+    """    
     numerics = []
     dates = []
     categoricals = []
@@ -228,7 +238,19 @@ def get_data_rules(config: dict):
     return numerics, dates, categoricals, drops
 
 
-def auto_categorical(df, encoder, categoricals):
+def auto_categorical(df: pd.DataFrame, 
+                     encoder: Optional[Union[sklearn.preprocessing._encoders.OneHotEncoder, sklearn.preprocessing._encoders.OrdinalEncoder]], 
+                     categoricals: list) -> pd.DataFrame:
+    """Automatic Categorical pre-processing function, Supports Ordinal and OHE. 
+
+    Args:
+        df (pd.DataFrame): dataframe
+        encoder (Optional[sklearn.preprocessing._encoders.OneHotEncoder, sklearn.preprocessing._encoders.OrdinalEncoder]): categorical encoder
+        categoricals (list): list of columns of categorical type
+
+    Returns:
+        pd.DataFrame: Dataframe of transformed categorical features
+    """    
     for category in categoricals:
         df[category] = df[category].fillna("no_category").astype(str)
 
@@ -246,20 +268,41 @@ def auto_categorical(df, encoder, categoricals):
     return transformed_df
 
 
-def auto_numeric(df, scaler, numerics):
+def auto_numeric(df: pd.DataFrame, scaler: sklearn.preprocessing.MinMaxScaler, numerics: list) -> pd.DataFrame:
+    """Automatic Number pre-processing function. 
+       For every number column performs MinMaxScaling. 
+
+    Args:
+        df (pd.DataFrame): Dataframe
+        scaler (sklearn.preprocessing.MinMaxScaler): MinMaxScaler object
+        numerics (list): List of columns of numeric type
+
+    Returns:
+        pd.DataFrame: Dataframe of Numeric scaled features
+    """    
     numerics_df = pd.DataFrame(scaler.transform(df[numerics]))
     numerics_df.columns = numerics
 
     return numerics_df
 
 
-def auto_dates(train, dates):
+def auto_dates(df: pd.DataFrame, dates: list) -> pd.DataFrame:
+    """Automatic Date pre-processing function, 
+       For every date column, gets the month, day, and day of week for new features.  
+
+    Args:
+        df (pd.DataFrame): DataFrame
+        dates (list): list of date columns
+
+    Returns:
+        pd.DataFrame: Original dataframe with new date features
+    """    
     # DF with all the dates
     dates_df = pd.DataFrame()
     for date in dates:
-        dates_df[f"{date}_month"] = pd.to_datetime(train[date]).dt.month
-        dates_df[f"{date}_day"] = pd.to_datetime(train[date]).dt.day
-        dates_df[f"{date}_dayofweek"] = pd.to_datetime(train[date]).dt.dayofweek
+        dates_df[f"{date}_month"] = pd.to_datetime(df[date]).dt.month
+        dates_df[f"{date}_day"] = pd.to_datetime(df[date]).dt.day
+        dates_df[f"{date}_dayofweek"] = pd.to_datetime(df[date]).dt.dayofweek
 
     return dates_df
 

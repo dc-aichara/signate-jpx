@@ -141,7 +141,6 @@ if __name__ == "__main__":
         test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
         print(train_tree.shape, test_tree.shape)
         params = config["lgb_params"]
-        seed = config["seed"]
         valid_with_test = config.get("use_test_as_validation")
 
         if config["cross_validation"] is True:

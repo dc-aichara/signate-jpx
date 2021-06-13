@@ -31,17 +31,15 @@ The below contains a description of parameters in config.yml which guide the ove
 * test_model: Whether to use public or private mode, Options: ["public", "private"]
 * random_seed: random seed for models, Ex: 255
 * low_memory_mode: Mode for debugging end to end pipeline quicker, uses only 10000 rows. Options: [True, False]
-* use_fin_data: Whether to use the financial data, we have set to false as it did not help us much. Options [True, False]
+* use_fin_data: Whether to use the financial data, we have set to false as it did not help us much. Options: [True, False]
 * data_date_limit: Maximum date for data,  Ex: "2021-01-01"
 * train_split_date: Maximum date for training data  Ex: "2020-01-01"
 * test_split_date: Starting date for test data Ex: "2020-01-01"
-  # If we want to drop data from train and test --> Avoid Data leak -> drop 2 months data
-* drop_data: False
+* drop_data: If we want to drop data from train and test --> Avoid Data leak -> drop 2 months data at end of dates Options: [True, False]
 * drop_data_train_date: "2016-02-01"
 * drop_data_test_date: "2020-01-01"
-* cross_validation: False
+* cross_validation: For internal validation, performs cross validation when training. Options: [True, False]
 * lgb_model: Whether to use LightGBM model.  Options: [True]
 * use_test_as_validation: Whether to use the test data as validation set. Options: [True, False]
 * train_with_all_data: Used for training with all data, this was used for final submission as using more data is beneficial for improving model performance. Options: [True, False]
-* seed: 227
 * lgb_params: LightGBM model hyperparameters
