@@ -7,6 +7,7 @@ from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, MinMaxScaler
 from typing import Tuple, Optional, Union
 import lightgbm as lgb
 
+
 def load_data(
     data_dir: str = "data/raw/",
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -67,25 +68,13 @@ def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
             c_min = df[col].min()
             c_max = df[col].max()
             if str(col_type)[:3] == "int":
-                if (
-                    c_min > np.iinfo(np.int8).min
-                    and c_max < np.iinfo(np.int8).max
-                ):
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
                     df[col] = df[col].astype(np.int8)
-                elif (
-                    c_min > np.iinfo(np.int16).min
-                    and c_max < np.iinfo(np.int16).max
-                ):
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
                     df[col] = df[col].astype(np.int16)
-                elif (
-                    c_min > np.iinfo(np.int32).min
-                    and c_max < np.iinfo(np.int32).max
-                ):
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
                     df[col] = df[col].astype(np.int32)
-                elif (
-                    c_min > np.iinfo(np.int64).min
-                    and c_max < np.iinfo(np.int64).max
-                ):
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
                     df[col] = df[col].astype(np.int64)
             else:
                 if (
@@ -199,7 +188,7 @@ def lgb_spearmanr(preds: np.ndarray, dtrain_data: lgb.basic.Dataset) -> float:
 
     Returns:
         float: spearman correlation score
-    """    
+    """
 
     labels = dtrain_data.get_label()
     corr = spearmanr(labels, preds)[0]
@@ -215,7 +204,7 @@ def lgb_r2_score(preds: np.ndarray, dtrain_data: lgb.basic.Dataset) -> float:
 
     Returns:
         float: R2 metrics
-    """    
+    """
     labels = dtrain_data.get_label()
     return "r2", r2_score(labels, preds), True
 
@@ -230,7 +219,7 @@ def final_metric(low_corr: float, high_corr: float) -> float:
 
     Returns:
         float: final evaluation metric as defined on signate
-    """    
+    """
     return (low_corr - 1) ** 2 + (high_corr - 1) ** 2
 
 
@@ -267,12 +256,7 @@ def get_data_rules(config: dict) -> Tuple[list, list, list, list]:
 
 def auto_categorical(
     df: pd.DataFrame,
-    encoder: Optional[
-        Union[
-            OneHotEncoder,
-            OrdinalEncoder,
-        ]
-    ],
+    encoder: Optional[Union[OneHotEncoder, OrdinalEncoder]],
     categoricals: list,
 ) -> pd.DataFrame:
     """Automatic Categorical pre-processing function, Supports Ordinal and OHE.

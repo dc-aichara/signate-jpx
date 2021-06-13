@@ -8,7 +8,14 @@ from scipy.stats import spearmanr
 import numpy as np
 
 
-def train_single_lgb(X_train: pd.DataFrame, X_valid: pd.DataFrame, y_train: np.ndarray, y_valid: np.ndarray, param: dict, save_path: str) -> lgb.Booster:
+def train_single_lgb(
+    X_train: pd.DataFrame,
+    X_valid: pd.DataFrame,
+    y_train: np.ndarray,
+    y_valid: np.ndarray,
+    param: dict,
+    save_path: str,
+) -> lgb.Booster:
     """Trains LightGBM model
 
     Args:
@@ -21,18 +28,14 @@ def train_single_lgb(X_train: pd.DataFrame, X_valid: pd.DataFrame, y_train: np.n
 
     Returns:
         lgb.Booster: Trained LightGBM model
-    """    
+    """
     lgb_train = lgb.Dataset(data=X_train, label=y_train)
     valid_sets = [lgb_train]
     if isinstance(X_valid, pd.DataFrame):
         lgb_valid = lgb.Dataset(data=X_valid, label=y_valid)
         valid_sets = [lgb_train, lgb_valid]
     model = lgb.train(
-        param,
-        lgb_train,
-        valid_sets=valid_sets,
-        verbose_eval=10,
-        feval=lgb_spearmanr,
+        param, lgb_train, valid_sets=valid_sets, verbose_eval=10, feval=lgb_spearmanr
     )
     featimp = model.feature_importance(importance_type="gain")
     feat_importance = pd.DataFrame(
@@ -43,15 +46,13 @@ def train_single_lgb(X_train: pd.DataFrame, X_valid: pd.DataFrame, y_train: np.n
         feat_importance.to_csv(f"{save_path}.csv", index=False)
 
     else:
-        model.save_model(
-            f"models/single_lgbm.txt", num_iteration=model.best_iteration
-        )
+        model.save_model(f"models/single_lgbm.txt", num_iteration=model.best_iteration)
         feat_importance.to_csv("models/feat_imp.csv", index=False)
 
     return model
 
 
-def cross_validation_lgbm(data: pd.DataFrame, param: dict, n_splits:int = 5) -> list:
+def cross_validation_lgbm(data: pd.DataFrame, param: dict, n_splits: int = 5) -> list:
     """Performs cross-validation for internal evaluation
 
     Args:
@@ -61,7 +62,7 @@ def cross_validation_lgbm(data: pd.DataFrame, param: dict, n_splits:int = 5) -> 
 
     Returns:
         list: A list of all CV scores for every split
-    """    
+    """
     lgbm_cv_scores = []
 
     folds = TimeSeriesSplit(n_splits=n_splits)
@@ -125,9 +126,7 @@ def cross_validation_lgbm(data: pd.DataFrame, param: dict, n_splits:int = 5) -> 
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
-    CLI.add_argument(
-        "--config_id", type=str, help="Configuration ID for training"
-    )
+    CLI.add_argument("--config_id", type=str, help="Configuration ID for training")
 
     ARGS = CLI.parse_args()
 
@@ -162,9 +161,7 @@ if __name__ == "__main__":
 
         if config["cross_validation"] is True:
             # Cross Validation
-            lgbm_cv_scores = cross_validation_lgbm(
-                train_tree, params, n_splits=5
-            )
+            lgbm_cv_scores = cross_validation_lgbm(train_tree, params, n_splits=5)
             print("LGBM CV scores")
             print(lgbm_cv_scores)
             print(np.mean(lgbm_cv_scores))
@@ -186,40 +183,27 @@ if __name__ == "__main__":
                 y_test_high,
             )
         elif config.get("train_with_all_data"):
-            (X_train_low, X_valid_low, y_train_low, y_valid_low,) = (
+            (X_train_low, X_valid_low, y_train_low, y_valid_low) = (
                 train_tree,
                 None,
                 y_train_low,
                 None,
             )
-            (X_train_high, X_valid_high, y_train_high, y_valid_high,) = (
+            (X_train_high, X_valid_high, y_train_high, y_valid_high) = (
                 train_tree,
                 None,
                 y_train_high,
                 None,
             )
         else:
-            (
-                X_train_low,
-                X_valid_low,
-                y_train_low,
-                y_valid_low,
-            ) = train_test_split(
+            (X_train_low, X_valid_low, y_train_low, y_valid_low) = train_test_split(
                 train_tree, y_train_low, test_size=0.2, shuffle=False
             )
-            (
-                X_train_high,
-                X_valid_high,
-                y_train_high,
-                y_valid_high,
-            ) = train_test_split(
+            (X_train_high, X_valid_high, y_train_high, y_valid_high) = train_test_split(
                 train_tree, y_train_high, test_size=0.2, shuffle=False
             )
 
-        print(
-            X_train_low.shape,
-            y_train_low.shape,
-        )
+        print(X_train_low.shape, y_train_low.shape)
         model_low = train_single_lgb(
             X_train_low,
             X_valid_low,

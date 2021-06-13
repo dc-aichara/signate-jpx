@@ -7,9 +7,7 @@ from datetime import datetime
 if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
 
-    CLI.add_argument(
-        "--config_id", type=str, help="Configuration ID for training"
-    )
+    CLI.add_argument("--config_id", type=str, help="Configuration ID for training")
 
     ARGS = CLI.parse_args()
 
@@ -21,20 +19,13 @@ if __name__ == "__main__":
     train_split_date = config.get("train_split_date", "2020-01-01")
     test_split_date = config.get("test_split_date", "2020-01-01")
     time1 = datetime.now()
-    (
-        stock_price,
-        stock_fin,
-        stock_list,
-        stock_labels,
-    ) = load_data()
+    (stock_price, stock_fin, stock_list, stock_labels) = load_data()
     time2 = datetime.now()
 
     # Fix all Date Formats
     stock_price = format_dates(stock_price, ["EndOfDayQuote Date"])
     stock_fin = format_dates(stock_fin, ["base_date"])
-    stock_price.rename(
-        columns={"EndOfDayQuote Date": "base_date"}, inplace=True
-    )
+    stock_price.rename(columns={"EndOfDayQuote Date": "base_date"}, inplace=True)
     # Drop data by date limit
     data_date_limit = config.get("data_date_limit", "2021-01-01")
     stock_price = stock_price[stock_price["base_date"] < data_date_limit]
@@ -59,8 +50,7 @@ if __name__ == "__main__":
         print(stock_price.isnull().sum() / len(stock_price) * 100)
 
     stock_labels = format_dates(
-        stock_labels,
-        ["base_date", "label_date_5", "label_date_10", "label_date_20"],
+        stock_labels, ["base_date", "label_date_5", "label_date_10", "label_date_20"]
     )
 
     print(stock_price.shape)
@@ -83,12 +73,7 @@ if __name__ == "__main__":
 
     train = train[train["prediction_target"] == True]
 
-    train = pd.merge(
-        train,
-        stock_labels,
-        on=["base_date", "Local Code"],
-        how="left",
-    )
+    train = pd.merge(train, stock_labels, on=["base_date", "Local Code"], how="left")
     # Drop first few rows of train data which has NAs.
     if use_fin_data:
         train.dropna(subset=["Forecast_Dividend FiscalPeriodEnd"], inplace=True)
@@ -100,12 +85,7 @@ if __name__ == "__main__":
         test = pd.merge(test, stock_list, on=["Local Code"], how="left")
         test = test[test["prediction_target"] == True]
 
-        test = pd.merge(
-            test,
-            stock_labels,
-            on=["base_date", "Local Code"],
-            how="left",
-        )
+        test = pd.merge(test, stock_labels, on=["base_date", "Local Code"], how="left")
 
     time3 = datetime.now()
 
