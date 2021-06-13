@@ -31,8 +31,6 @@ if __name__ == "__main__":
     # Probably will move this - Anything we want to keep
     linear_model_data_config = {
         "base_date": "date",
-        # 'Effective Date': 'date',
-        # 'Local Code': 'categorical',
         "Name (English)": "drop",
         "Section/Products": "categorical",
         "33 Sector(Code)": "categorical",
@@ -42,7 +40,6 @@ if __name__ == "__main__":
         "Size Code (New Index Series)": "categorical",
         "Size (New Index Series)": "drop",
         "IssuedShareEquityQuote AccountingStandard": "categorical",
-        # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
         # stock_price
         "EndOfDayQuote Open": "numeric",
@@ -63,8 +60,6 @@ if __name__ == "__main__":
 
     tree_model_data_config = {
         "base_date": "date",
-        # 'Effective Date': 'date',
-        # 'Local Code': 'categorical',
         "Name (English)": "drop",
         "Section/Products": "categorical",
         "33 Sector(Code)": "categorical",
@@ -74,9 +69,7 @@ if __name__ == "__main__":
         "Size Code (New Index Series)": "categorical",
         "Size (New Index Series)": "drop",
         "IssuedShareEquityQuote AccountingStandard": "categorical",
-        # 'IssuedShareEquityQuote ModifyDate': 'date',
         "IssuedShareEquityQuote IssuedShare": "numeric",
-        # stock_price
         "EndOfDayQuote Open": "numeric",
         "EndOfDayQuote High": "numeric",
         "EndOfDayQuote Low": "numeric",
@@ -96,8 +89,6 @@ if __name__ == "__main__":
     # Generic Steps
     train = pd.read_csv("data/interim/train_data.csv")
     print("Train shape: ", train.shape)
-    test = pd.read_csv("data/interim/test_data.csv")
-    print("Test shape: ", test.shape)
 
     # Technical features for train data
     train_feat1 = get_technical_features(
@@ -141,40 +132,47 @@ if __name__ == "__main__":
         {"change_pct": "numeric", "change": "numeric"}
     )
 
-    # Technical features for test data
-    test_feat1 = get_technical_features(
-        test, periods=[10, 20, 30], extra_feats=True
-    )
-    test = pd.merge(
-        test, test_feat1, on=["base_date", "Local Code"], how="left"
-    )
-    del test_feat1
+    if config.get("test_model") == "public":
+        test = pd.read_csv("data/interim/test_data.csv")
+        print("Test shape: ", test.shape)
+        # Technical features for test data
+        test_feat1 = get_technical_features(
+            test, periods=[10, 20, 30], extra_feats=True
+        )
+        test = pd.merge(
+            test, test_feat1, on=["base_date", "Local Code"], how="left"
+        )
+        del test_feat1
 
-    test_feat2 = get_technical_features(test, periods=[14, 28, 42])
-    test = pd.merge(
-        test, test_feat2, on=["base_date", "Local Code"], how="left"
-    )
-    del test_feat2
+        test_feat2 = get_technical_features(test, periods=[14, 28, 42])
+        test = pd.merge(
+            test, test_feat2, on=["base_date", "Local Code"], how="left"
+        )
+        del test_feat2
 
-    test["change_pct"] = (
-        (test["EndOfDayQuote High"] - test["EndOfDayQuote Low"])
-        * 100
-        / (test["EndOfDayQuote Close"])
-    )
-    test["change_pct"] = test["change_pct"].fillna(0)
-    test["change"] = test["EndOfDayQuote Open"] - test["EndOfDayQuote Close"]
-    test.reset_index(drop=True, inplace=True)
-    print("Test shape: ", test.shape)
+        test["change_pct"] = (
+            (test["EndOfDayQuote High"] - test["EndOfDayQuote Low"])
+            * 100
+            / (test["EndOfDayQuote Close"])
+        )
+        test["change_pct"] = test["change_pct"].fillna(0)
+        test["change"] = (
+            test["EndOfDayQuote Open"] - test["EndOfDayQuote Close"]
+        )
+        test.reset_index(drop=True, inplace=True)
+        print("Test shape: ", test.shape)
     drop_data = config.get("drop_data")
     if drop_data:
         drop_data_train_date = config.get("drop_data_train_date")
-        drop_data_test_date = config.get("drop_data_test_date")
-        print("Drop dates:", drop_data_test_date, drop_data_train_date)
+
+        print("Drop date train:", drop_data_train_date)
         train = train[train["base_date"] >= drop_data_train_date]
-        test = test[test["base_date"] >= drop_data_test_date]
+        if config.get("test_model") == "public":
+            drop_data_test_date = config.get("drop_data_test_date")
+            print("Drop date test:", drop_data_test_date)
+            test = test[test["base_date"] >= drop_data_test_date]
+            test.reset_index(drop=True, inplace=True)
     train.reset_index(drop=True, inplace=True)
-    test.reset_index(drop=True, inplace=True)
-    print(train.shape, test.shape)
 
     use_fin_data = config.get("use_fin_data")
     if use_fin_data:
@@ -207,24 +205,25 @@ if __name__ == "__main__":
     # Split into X/y Train, X/Y test
     y_train_high = train["label_high_20"]
     y_train_low = train["label_low_20"]
-
-    y_test_high = test["label_high_20"]
-    y_test_low = test["label_low_20"]
-
     print(
         y_train_high.shape,
         y_train_low.shape,
-        y_test_high.shape,
-        y_test_low.shape,
         train.shape,
-        test.shape,
     )
     y_train_high.to_csv("data/processed/y_train_high.csv", index=False)
     y_train_low.to_csv("data/processed/y_train_low.csv", index=False)
-    y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
-    y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
+    del y_train_high, y_train_low
+    if config.get("test_model") == "public":
+        y_test_high = test["label_high_20"]
+        y_test_low = test["label_low_20"]
+        y_test_high.to_csv("data/processed/y_test_high.csv", index=False)
+        y_test_low.to_csv("data/processed/y_test_low.csv", index=False)
+        del (
+            y_test_low,
+            y_test_high,
+        )
     print("Saved Labels!!!")
-    del y_test_low, y_test_high, y_train_high, y_train_low
+
     # Get preproc rules
     (
         numerics_linear,
@@ -242,13 +241,13 @@ if __name__ == "__main__":
     # Dates
     train_dates_df_linear = auto_dates(train, dates_linear)
 
-    # Numerics
+    # Numeric Features
     scaler = MinMaxScaler()
     scaler.fit(train[numerics_linear])
 
     train_numerics_df_linear = auto_numeric(train, scaler, numerics_linear)
 
-    # Categoricals
+    # Categorical Features
     for category in categoricals_linear:
         train[category] = train[category].fillna("no_category").astype(str)
 
