@@ -1,25 +1,27 @@
 import yaml
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import TimeSeriesSplit
 from scipy.stats import spearmanr
 from PriceIndices import Indices
-import sklearn
-from typing import Tuple, Iterator, Optional, Union
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, MinMaxScaler
+from typing import Tuple, Optional, Union
 
 
-def load_data(data_dir: str = "data/raw/") -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Given a path to the data will load all datasets into pandas dataframes. 
+def load_data(
+    data_dir: str = "data/raw/",
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Given a path to the data will load all datasets into pandas dataframes.
 
     Args:
-        data_dir (str, optional): Path to the input datasets where stock_labels, stock_fin, stock_list, and stock_price are located. Defaults to "data/raw/".
+        data_dir (str, optional): Path to the input datasets where stock_labels,
+         stock_fin, stock_list, and stock_price are located.
+         Defaults to "data/raw/".
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]: stock_price df, stock_fin df, stock_list df, stock_labels df
-    """    
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+            stock_price df, stock_fin df, stock_list df, stock_labels df
+    """
 
-    
     print(f"Loading data from {data_dir}")
     stock_labels = pd.read_csv(f"{data_dir}stock_labels.csv.gz")
     stock_fin = pd.read_csv(f"{data_dir}stock_fin.csv.gz")
@@ -34,11 +36,11 @@ def format_dates(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
     Args:
         df (pd.DataFrame): Original DataFrame of data
-        columns (list): List of columns that should be dates 
+        columns (list): List of columns that should be dates
 
     Returns:
-        pd.DataFrame: Returns original Dataframe with cleaned up dates. 
-    """    
+        pd.DataFrame: Returns original Dataframe with cleaned up dates.
+    """
 
     for column in columns:
         df[column] = pd.to_datetime(df[column]).dt.strftime("%Y-%m-%d")
@@ -48,7 +50,7 @@ def format_dates(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
 def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     """Function for reducing memory usage by downcasting of types
-       in dataframes. 
+       in dataframes.
 
     Args:
         df (pd.DataFrame): DataFrame of Data
@@ -56,7 +58,7 @@ def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: Dataframe of data after type downcasting
-    """    
+    """
     numerics = ["int16", "int32", "int64", "float16", "float32", "float64"]
     start_mem = df.memory_usage().sum() / 1024 ** 2
     for col in df.columns:
@@ -109,19 +111,20 @@ def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
 
 
 def load_config(config_id: str) -> dict:
-    """Reads Configuration from yaml file. 
+    """Reads Configuration from yaml file.
 
     Args:
         config_id (str): specific configuration ID to use in yaml file
 
     Returns:
         dict: Returns dictionary of configuration parameters
-    """    
+    """
     with open("config.yml", "r") as f:
         doc = yaml.load(f, yaml.Loader)
 
     config = doc[config_id]
     return config
+
 
 def calculate_price_indices(
     data: pd.DataFrame, date_col: str = "date", price_col: str = "price"
@@ -211,15 +214,18 @@ def final_metric(low_corr, high_corr):
 
 
 def get_data_rules(config: dict) -> Tuple[list, list, list, list]:
-    """Uses date configuration to determine which columns are of numeric, date, categorical type as well as 
-       what should be dropped. 
+    """
+    Uses date configuration to determine which columns are of numeric, date,
+    categorical type as well as what should be dropped.
 
     Args:
         config (dict): Data Configuration
 
     Returns:
-        Tuple[list, list, list, list]: List of columns that are numeric, dates, categoricals, and should be dropped. 
-    """    
+        Tuple[list, list, list, list]:
+            List of columns that are numeric, dates,  categoricals,
+            and should be dropped.
+    """
     numerics = []
     dates = []
     categoricals = []
@@ -238,48 +244,57 @@ def get_data_rules(config: dict) -> Tuple[list, list, list, list]:
     return numerics, dates, categoricals, drops
 
 
-def auto_categorical(df: pd.DataFrame, 
-                     encoder: Optional[Union[sklearn.preprocessing._encoders.OneHotEncoder, sklearn.preprocessing._encoders.OrdinalEncoder]], 
-                     categoricals: list) -> pd.DataFrame:
-    """Automatic Categorical pre-processing function, Supports Ordinal and OHE. 
+def auto_categorical(
+    df: pd.DataFrame,
+    encoder: Optional[
+        Union[
+            OneHotEncoder,
+            OrdinalEncoder,
+        ]
+    ],
+    categoricals: list,
+) -> pd.DataFrame:
+    """Automatic Categorical pre-processing function, Supports Ordinal and OHE.
 
     Args:
         df (pd.DataFrame): dataframe
-        encoder (Optional[sklearn.preprocessing._encoders.OneHotEncoder, sklearn.preprocessing._encoders.OrdinalEncoder]): categorical encoder
+        encoder (Optional[OneHotEncoder, OrdinalEncoder]): categorical encoder
         categoricals (list): list of columns of categorical type
 
     Returns:
         pd.DataFrame: Dataframe of transformed categorical features
-    """    
+    """
     for category in categoricals:
         df[category] = df[category].fillna("no_category").astype(str)
 
     transformed_df = pd.DataFrame(encoder.transform(df[categoricals]))
 
     # if ohe
-    if isinstance(encoder, sklearn.preprocessing._encoders.OneHotEncoder):
+    if isinstance(encoder, OneHotEncoder):
         print("OHE")
         transformed_df.columns = encoder.get_feature_names()
 
-    if isinstance(encoder, sklearn.preprocessing._encoders.OrdinalEncoder):
+    if isinstance(encoder, OrdinalEncoder):
         print("Ordinal Encoder")
         transformed_df.columns = categoricals
 
     return transformed_df
 
 
-def auto_numeric(df: pd.DataFrame, scaler: sklearn.preprocessing.MinMaxScaler, numerics: list) -> pd.DataFrame:
-    """Automatic Number pre-processing function. 
-       For every number column performs MinMaxScaling. 
+def auto_numeric(
+    df: pd.DataFrame, scaler: MinMaxScaler, numerics: list
+) -> pd.DataFrame:
+    """Automatic Number pre-processing function.
+       For every number column performs MinMaxScaling.
 
     Args:
         df (pd.DataFrame): Dataframe
-        scaler (sklearn.preprocessing.MinMaxScaler): MinMaxScaler object
+        scaler (MinMaxScaler): MinMaxScaler object
         numerics (list): List of columns of numeric type
 
     Returns:
         pd.DataFrame: Dataframe of Numeric scaled features
-    """    
+    """
     numerics_df = pd.DataFrame(scaler.transform(df[numerics]))
     numerics_df.columns = numerics
 
@@ -287,8 +302,9 @@ def auto_numeric(df: pd.DataFrame, scaler: sklearn.preprocessing.MinMaxScaler, n
 
 
 def auto_dates(df: pd.DataFrame, dates: list) -> pd.DataFrame:
-    """Automatic Date pre-processing function, 
-       For every date column, gets the month, day, and day of week for new features.  
+    """
+    Automatic Date pre-processing function, For every date column, gets the
+    month, day, and day of week for new features.
 
     Args:
         df (pd.DataFrame): DataFrame
@@ -296,7 +312,7 @@ def auto_dates(df: pd.DataFrame, dates: list) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: Original dataframe with new date features
-    """    
+    """
     # DF with all the dates
     dates_df = pd.DataFrame()
     for date in dates:

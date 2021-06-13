@@ -36,8 +36,8 @@ The below contains a description of parameters in config.yml which guide the ove
 * train_split_date: Maximum date for training data  Ex: "2020-01-01"
 * test_split_date: Starting date for test data Ex: "2020-01-01"
 * drop_data: If we want to drop data from train and test --> Avoid Data leak -> drop 2 months data at end of dates Options: [True, False]
-* drop_data_train_date: "2016-02-01"
-* drop_data_test_date: "2020-01-01"
+* drop_data_train_date: Drop data before this date. Ex: "2016-02-01"
+* drop_data_test_date: Drop test data after this date. Ex: "2020-01-01"
 * cross_validation: For internal validation, performs cross validation when training. Options: [True, False]
 * lgb_model: Whether to use LightGBM model.  Options: [True]
 * use_test_as_validation: Whether to use the test data as validation set. Options: [True, False]

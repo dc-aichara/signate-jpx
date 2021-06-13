@@ -8,8 +8,7 @@ from utils import (
     get_technical_features,
 )
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, MinMaxScaler
 import json
 import pickle
 
@@ -98,6 +97,9 @@ if __name__ == "__main__":
 
     if config.get("test_model") == "public":
         test = pd.read_csv("data/interim/test_data.csv")
+        test["Size Code (New Index Series)"] = test[
+            "Size Code (New Index Series)"
+        ].astype(str)
         print("Test shape: ", test.shape)
         # Technical features for test data
         test_feat1 = get_technical_features(
@@ -196,11 +198,17 @@ if __name__ == "__main__":
     print("Begin Tree Processing")
 
     train_dates_df_trees = auto_dates(train, dates_tree)
+    # Categorical Features
+    for category in categoricals_tree:
+        train[category] = train[category].fillna("no_category").astype(str)
+
     ordenc = OrdinalEncoder()
     ordenc.fit(train[categoricals_tree])
     train_categoricals_df_trees = auto_categorical(
         train, ordenc, categoricals_tree
     )
+    scaler = MinMaxScaler()
+    scaler.fit(train[numerics_tree])
     train_numerics_df_trees = auto_numeric(train, scaler, numerics_tree)
 
     train_trees = pd.concat(
@@ -220,6 +228,8 @@ if __name__ == "__main__":
         # Trees
         test_dates_df_trees = auto_dates(test, dates_tree)
         test_numerics_df_trees = auto_numeric(test, scaler, numerics_tree)
+        for category in categoricals_tree:
+            test[category] = test[category].fillna("no_category").astype(str)
         test_categoricals_df_trees = auto_categorical(
             test, ordenc, categoricals_tree
         )

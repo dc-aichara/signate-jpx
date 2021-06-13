@@ -1,7 +1,6 @@
 import argparse
 from utils import load_config, lgb_spearmanr, final_metric
 import pandas as pd
-from sklearn import linear_model
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import TimeSeriesSplit
 import lightgbm as lgb
@@ -21,7 +20,6 @@ def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
         valid_sets=valid_sets,
         verbose_eval=10,
         feval=lgb_spearmanr,
-        # categorical_feature=cat_feats
     )
     featimp = model.feature_importance(importance_type="gain")
     feat_importance = pd.DataFrame(
@@ -38,6 +36,7 @@ def train_single_lgb(X_train, X_valid, y_train, y_valid, param, save_path):
         feat_importance.to_csv("models/feat_imp.csv", index=False)
 
     return model
+
 
 def cross_validation_lgbm(data, param, n_splits=5):
     lgbm_cv_scores = []
@@ -116,31 +115,26 @@ if __name__ == "__main__":
 
     y_train_high = pd.read_csv("data/processed/y_train_high.csv")
     y_train_low = pd.read_csv("data/processed/y_train_low.csv")
-    y_test_high = pd.read_csv("data/processed/y_test_high.csv")
-    y_test_low = pd.read_csv("data/processed/y_test_low.csv")
 
     print(y_train_high.isnull().sum())
-
     # TEMPORARY FILL NAS with 0 until we figure out why they are null -
     # only around 30 examples
     y_train_high.fillna(method="ffill", inplace=True)
     y_train_low.fillna(method="ffill", inplace=True)
 
-    y_test_high.fillna(method="ffill", inplace=True)
-    y_test_low.fillna(method="ffill", inplace=True)
-    print(
-        y_train_high.shape,
-        y_train_low.shape,
-        y_test_high.shape,
-        y_test_low.shape,
-    )
-    original_data = pd.read_csv("data/interim/test_data.csv")
+    if config.get("test_model") == "public":
+        y_test_high = pd.read_csv("data/processed/y_test_high.csv")
+        y_test_low = pd.read_csv("data/processed/y_test_low.csv")
+        y_test_high.fillna(method="ffill", inplace=True)
+        y_test_low.fillna(method="ffill", inplace=True)
+        original_data = pd.read_csv("data/interim/test_data.csv")
 
     if config["lgb_model"]:
         train_tree = pd.read_csv("data/processed/train_trees.csv").fillna(0)
         test_tree = pd.read_csv("data/processed/test_trees.csv").fillna(0)
         print(train_tree.shape, test_tree.shape)
         params = config["lgb_params"]
+        seed = config["seed"]
         valid_with_test = config.get("use_test_as_validation")
 
         if config["cross_validation"] is True:
@@ -154,7 +148,7 @@ if __name__ == "__main__":
 
         print("Training  LightGBM!!!!!")
         # Use test_data data as validation data
-        if valid_with_test:
+        if valid_with_test and config.get("test_model") == "public":
             print("Using Test data a validation data!!!")
             X_train_low, X_valid_low, y_train_low, y_valid_low = (
                 train_tree,
@@ -221,30 +215,30 @@ if __name__ == "__main__":
             "models/lgb_label_high_20",
         )
 
-        high_preds = model_high.predict(test_tree)
-        low_preds = model_low.predict(test_tree)
+        if config.get("test_model") == "public":
+            high_preds = model_high.predict(test_tree)
+            low_preds = model_low.predict(test_tree)
 
-        high_df = pd.concat([y_test_high, pd.DataFrame(high_preds)], axis=1)
-        low_df = pd.concat([y_test_low, pd.DataFrame(low_preds)], axis=1)
+            high_df = pd.concat([y_test_high, pd.DataFrame(high_preds)], axis=1)
+            low_df = pd.concat([y_test_low, pd.DataFrame(low_preds)], axis=1)
 
-        # Evaluate LightGBM
-        spearman_high = spearmanr(y_test_high, high_preds)[0]
-        spearman_low = spearmanr(y_test_low, low_preds)[0]
-        print(spearman_low, spearman_high)
-        final_metric_tree = final_metric(spearman_low, spearman_high)
+            # Evaluate LightGBM
+            spearman_high = spearmanr(y_test_high, high_preds)[0]
+            spearman_low = spearmanr(y_test_low, low_preds)[0]
+            print(spearman_low, spearman_high)
+            final_metric_tree = final_metric(spearman_low, spearman_high)
 
-        original_data["lgbm_high"] = high_preds
-        original_data["lgbm_low"] = low_preds
+            original_data["lgbm_high"] = high_preds
+            original_data["lgbm_low"] = low_preds
 
-        print(
-            "LightGBM Regressor: Final Leaderboard Score- Public - Test Set is "
-            "same as public leaderboard."
-        )
-        print(final_metric_tree)
+            print(
+                "LightGBM Regressor: Final Leaderboard Score- Public - Test "
+                "Set is same as public leaderboard."
+            )
+            print(final_metric_tree)
+            # Tree Based Model
 
-    # Tree Based Model
+            high_df.to_csv("data/submissions/high_df.csv")
+            low_df.to_csv("data/submissions/low_df.csv")
 
-    high_df.to_csv("data/submissions/high_df.csv")
-    low_df.to_csv("data/submissions/low_df.csv")
-
-    original_data.to_csv("data/error_analysis/preds.csv", index=False)
+            original_data.to_csv("data/error_analysis/preds.csv", index=False)

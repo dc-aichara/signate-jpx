@@ -117,11 +117,17 @@ if __name__ == "__main__":
     # Begin combining data and stuff.
     train["33 Sector(Code)"] = train["33 Sector(Code)"].astype(int)
     train["17 Sector(Code)"] = train["17 Sector(Code)"].astype(int)
+    train["Size Code (New Index Series)"] = train[
+        "Size Code (New Index Series)"
+    ].astype(str)
     train.to_csv("data/interim/train_data.csv", index=False)
 
     if config.get("test_model") == "public":
         test["33 Sector(Code)"] = test["33 Sector(Code)"].astype(int)
         test["17 Sector(Code)"] = test["17 Sector(Code)"].astype(int)
+        test["Size Code (New Index Series)"] = test[
+            "Size Code (New Index Series)"
+        ].astype(str)
         test.to_csv("data/interim/test_data.csv", index=False)
         print(test.shape)
         print(test.head())
