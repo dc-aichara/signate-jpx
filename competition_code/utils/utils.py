@@ -354,6 +354,7 @@ def get_technical_features(
             feats = calculate_price_indices(
                 feats, date_col=date_col, price_col=price_col
             )
+        feats = feats.sort_values(date_col)
         feats[f"EMA_{periods[1]}"] = (
             feats[price_col].ewm(span=periods[2], adjust=False).mean()
         )
